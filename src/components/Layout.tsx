@@ -170,7 +170,7 @@ export function Layout() {
       <header ref={headerRef} className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
         <VLink to="/" className="logo" aria-label={t.siteName}>
           <span className="logo__mark" aria-hidden>
-            <span>F</span><span>Y</span><span>C</span>
+            <span>T</span><span>S</span>
           </span>
           <span className="logo__text">
             <span className="logo__name">{t.siteName}</span>

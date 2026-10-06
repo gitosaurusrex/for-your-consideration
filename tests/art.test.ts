@@ -149,7 +149,7 @@ describe('Find art for a game', () => {
     });
     const [url, init] = fetchMock.mock.calls[0];
     expect(new URL(String(url)).searchParams.get('pilicense')).toBe('any');
-    expect((init?.headers as Record<string, string>)['User-Agent']).toMatch(/ForYourConsideration/);
+    expect((init?.headers as Record<string, string>)['User-Agent']).toMatch(/TheStacks/);
   });
 
   it('says so when Wikipedia is rate-limiting', async () => {

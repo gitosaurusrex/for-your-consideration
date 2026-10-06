@@ -23,7 +23,7 @@ function Shell() {
     <div className="admin">
       <header className="admin-bar">
         <a href="/" className="admin-bar__brand" target="_blank" rel="noreferrer">
-          <span className="logo__mark"><span>F</span><span>Y</span><span>C</span></span>
+          <span className="logo__mark"><span>T</span><span>S</span></span>
           <span>Admin</span>
         </a>
         <nav className="admin-nav">
@@ -54,7 +54,7 @@ function Shell() {
 
 export function AdminApp() {
   useEffect(() => {
-    document.title = 'Admin · For Your Consideration';
+    document.title = 'Admin · The Stacks';
     document.documentElement.lang = 'en';
     // The admin keeps the default palette, not the public site's time-of-day one.
     delete document.documentElement.dataset.period;

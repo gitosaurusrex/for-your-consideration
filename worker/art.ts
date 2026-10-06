@@ -70,7 +70,7 @@ async function filmOrTv(env: Bindings, item: ItemDoc): Promise<ArtCandidate[]> {
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 
 /** Wikimedia asks API clients to identify themselves. */
-const WIKI_UA = 'ForYourConsideration/1.0 (https://github.com/gitosaurusrex/for-your-consideration)';
+const WIKI_UA = 'TheStacks/1.0 (https://github.com/gitosaurusrex/for-your-consideration)';
 
 export interface WikiPage {
   title: string;

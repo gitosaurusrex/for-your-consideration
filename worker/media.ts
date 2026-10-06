@@ -53,7 +53,7 @@ export async function importImage(env: Bindings, url: string): Promise<string> {
   let parsed: URL;
   try { parsed = new URL(url); } catch { throw new MediaError('Not a valid link.'); }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new MediaError('Only http(s) links can be copied.');
-  const res = await fetch(parsed, { headers: { 'User-Agent': 'ForYourConsideration/1.0 (+image copy)', Accept: 'image/*' }, redirect: 'follow' });
+  const res = await fetch(parsed, { headers: { 'User-Agent': 'TheStacks/1.0 (+image copy)', Accept: 'image/*' }, redirect: 'follow' });
   if (!res.ok) throw new MediaError(`The image link answered ${res.status}.`);
   const declared = Number(res.headers.get('content-length') ?? 0);
   if (declared > MAX_IMAGE_BYTES) throw new MediaError('That image is larger than 15 MB.');
