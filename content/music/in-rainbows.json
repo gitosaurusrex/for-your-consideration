@@ -1,0 +1,48 @@
+{
+  "en": {
+    "title": "In Rainbows",
+    "album": "",
+    "summary": "Radiohead at their warmest: intricate rhythms, shimmering guitars and surprisingly romantic songs. Ten tracks that flow together perfectly.",
+    "note": "\"Weird Fishes/Arpeggi\" is the one.",
+    "kind": "album",
+    "year": 2007,
+    "countries": [
+      "GB"
+    ],
+    "artists": [
+      "radiohead"
+    ],
+    "genres": [
+      "alternative",
+      "indie-rock"
+    ],
+    "featured": false,
+    "added": "2026-08-22",
+    "spotify_url": "https://open.spotify.com/search/Radiohead%20In%20Rainbows",
+    "video_url": "",
+    "cover": ""
+  },
+  "ja": {
+    "title": "イン・レインボウズ",
+    "album": "",
+    "summary": "いちばん温かいレディオヘッド。複雑なリズム、きらめくギター、そして意外なほどロマンチックな歌。10曲が完璧につながっていく。",
+    "note": "「Weird Fishes/Arpeggi」がとにかく最高。",
+    "kind": "album",
+    "year": 2007,
+    "countries": [
+      "GB"
+    ],
+    "artists": [
+      "radiohead"
+    ],
+    "genres": [
+      "alternative",
+      "indie-rock"
+    ],
+    "featured": false,
+    "added": "2026-08-22",
+    "spotify_url": "https://open.spotify.com/search/Radiohead%20In%20Rainbows",
+    "video_url": "",
+    "cover": ""
+  }
+}

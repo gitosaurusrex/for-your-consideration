@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Client-side routes fall back to the app (real files like /admin/ are served first).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -1,0 +1,30 @@
+{
+  "name": "for-your-consideration",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check:content && tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check:content": "node scripts/check-content.mjs",
+    "fetch-art": "node --env-file-if-exists=.env scripts/fetch-art.mjs"
+  },
+  "dependencies": {
+    "motion": "^14.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^8.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  },
+  "engines": {
+    "node": ">=22.9"
+  }
+}

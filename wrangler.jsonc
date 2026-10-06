@@ -1,0 +1,10 @@
+// Cloudflare Workers (static assets) — the recommended host. See README → Deploying.
+{
+  "name": "for-your-consideration",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./dist",
+    // Serve index.html for client-side routes like /title/past-lives
+    "not_found_handling": "single-page-application"
+  }
+}
