@@ -27,7 +27,15 @@ export interface SaveResult { doc: AnyDoc; warnings: string[] }
 export interface RefList { id: string; title: I18n; kind: ItemKind }
 export interface IngestListRow { id: number; created_at: string; filename: string | null; counts: Plan['counts'] }
 
-export interface ArtCandidate { source: string; label: string; detail?: string; preview: string; fields: Record<string, string | I18n> }
+export interface ArtCandidate { source: string; label: string; detail?: string; preview: string; fields: Record<string, string> }
+export interface FillResult { patch: Record<string, unknown>; filled: Record<string, 'tmdb' | 'ai'>; notes: string[]; aiStopped?: string }
+export interface TranslateFillResult {
+  filled: { key: string; label: string; got: Record<string, 'tmdb' | 'ai'> }[];
+  notes: { key: string; label: string; note: string }[];
+  done: string[];
+  remaining: number;
+  stopped?: string;
+}
 export interface FillPeopleResult { filled: { id: string; label: string; got: string[] }[]; failed: { id: string; label: string; error: string }[]; remaining: number }
 export interface MirrorResult { copied: number; failed: { label: string; field: string; url: string; error: string }[]; remaining: number }
 
@@ -43,7 +51,10 @@ export const api = {
   importImage: (url: string) => request<{ url: string }>('POST', '/media/import', { url }),
   mirror: (skip: string[], limit = 6) => request<MirrorResult>('POST', '/media/mirror', { skip, limit }),
   fillPeople: (skip: string[]) => request<FillPeopleResult>('POST', '/people/fill', { skip }),
-  artStatus: () => request<{ tmdb: boolean; igdb: boolean; spotify: boolean }>('GET', '/art/status'),
+  fill: (type: EntityType, doc: unknown, only: string[]) => request<FillResult>('POST', '/fill', { type, doc, only }),
+  translateStatus: () => request<{ records: number; fields: number; ai: boolean; tmdb: boolean }>('GET', '/translate/status'),
+  translateFill: (skip: string[]) => request<TranslateFillResult>('POST', '/translate/fill', { skip }),
+  artStatus: () => request<{ tmdb: boolean; igdb: boolean; spotify: boolean; ai: boolean }>('GET', '/art/status'),
   findArt: (type: EntityType, doc: unknown) => request<{ candidates: ArtCandidate[] }>('POST', '/art/search', { type, doc }),
   login: (password: string) => request<{ ok: true }>('POST', '/login', { password }),
   logout: () => request<{ ok: true }>('POST', '/logout'),

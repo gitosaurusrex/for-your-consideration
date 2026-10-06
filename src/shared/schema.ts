@@ -31,6 +31,15 @@ export const MEDIUM_KINDS: Record<Medium, ItemKind[]> = { watch: ['film', 'tv'],
 /** A translated string: English is required wherever the field is required; every other language falls back to English. */
 export type I18n = { en: string; ja?: string; th?: string; es?: string };
 
+/**
+ * Where the text of a translated field came from, per language, keyed "field.lang" (e.g. "summary.th": "ai").
+ * Set when TMDB or Cloudflare AI fills a field; the admin shows it as a checkbox the editor can untick.
+ * No entry means it was written by hand (or reviewed).
+ */
+export type Source = 'tmdb' | 'ai';
+export type Sources = Record<string, Source>;
+export const sourceKey = (field: string, lang: Lang) => `${field}.${lang}`;
+
 /** True when a translated field has text in any language. */
 export const hasText = (v?: Partial<I18n>) => LANGS.some((l) => !!v?.[l]);
 
@@ -79,11 +88,12 @@ export interface ItemDoc {
   publishers?: string[];
   creators?: string[];
   igdb_id?: string;
+  sources?: Sources;
 }
 
-export interface PersonDoc { id: string; name: I18n; bio?: I18n; bio_credit?: string; photo?: string; photo_credit?: string }
-export interface CompanyDoc { id: string; name: I18n; country?: string; logo?: string }
-export interface GenreDoc { id: string; medium: Medium; slug: string; name: I18n; hue?: number }
+export interface PersonDoc { id: string; name: I18n; bio?: I18n; bio_credit?: string; photo?: string; photo_credit?: string; sources?: Sources }
+export interface CompanyDoc { id: string; name: I18n; country?: string; logo?: string; sources?: Sources }
+export interface GenreDoc { id: string; medium: Medium; slug: string; name: I18n; hue?: number; sources?: Sources }
 export type AnyDoc = ItemDoc | PersonDoc | CompanyDoc | GenreDoc;
 
 export interface SiteSettings {
@@ -223,7 +233,7 @@ export const ENTITY_FIELDS: Record<Exclude<EntityType, 'item'>, FieldSpec[]> = {
   person: [
     f('id', 'ID (URL slug)', 'id', { hint: 'Leave blank to generate from the English name.' }),
     f('name', 'Name', 'text', { i18n: true, required: true, hint: '日本語: the name as written in Japan (e.g. ドゥニ・ヴィルヌーヴ, 小島秀夫).' }),
-    f('bio', 'Short bio', 'textarea', { i18n: true, hint: '"Find art" on the headshot can fill this in from TMDB.' }),
+    f('bio', 'Short bio', 'textarea', { i18n: true, hint: '"Fill in missing" (top of this page) can fill this in from TMDB.' }),
     f('bio_credit', 'Bio source', 'text', { hint: 'Shown under the bio. Required when the text comes from Wikipedia, e.g. "Bio: Wikipedia, CC BY-SA".' }),
     f('photo', 'Headshot', 'image'),
     f('photo_credit', 'Photo credit', 'text', { hint: 'Required for Wikimedia Commons photos, e.g. "Photo: Jane Doe, CC BY-SA 4.0".' }),

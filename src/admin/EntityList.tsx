@@ -25,6 +25,9 @@ function flagsFor(type: EntityType, doc: AnyDoc): string[] {
     if (type === 'person' && !named.photo) out.push('no photo');
     if (type === 'person' && !named.bio) out.push('no bio');
   }
+  // AI translations still flagged (the editor unticks the box once reviewed).
+  const ai = Object.values(doc.sources ?? {}).filter((s) => s === 'ai').length;
+  if (ai) out.push(`${ai} AI translation${ai === 1 ? '' : 's'} to review`);
   return out;
 }
 

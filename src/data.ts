@@ -1,4 +1,4 @@
-import { availabilityActive, genreKey, LANGS, MEDIA, type CompanyDoc, type GenreDoc, type ItemDoc, type Lang, type Medium, type PersonDoc, type SiteSettings, type I18n } from './shared/schema';
+import { availabilityActive, genreKey, LANGS, MEDIA, type CompanyDoc, type GenreDoc, type ItemDoc, type Lang, type Medium, type PersonDoc, type SiteSettings, type I18n, type Sources, sourceKey } from './shared/schema';
 import type { Company, Entry, Genre, Item, Localized, Person } from './types';
 
 export interface Catalog {
@@ -142,6 +142,10 @@ export function itemHue(item: Item): number {
   const base = g?.doc.hue ?? hueOf(item.slug);
   return (base + (hueOf(item.slug) % 40) - 20 + 360) % 360;
 }
+
+/** Is this field's text in this language a flagged AI translation (shown, not an English fallback)? */
+export const isAiTranslated = (doc: { sources?: Sources } & object, field: string, lang: Lang) =>
+  !!(doc as Record<string, I18n | undefined>)[field]?.[lang] && doc.sources?.[sourceKey(field, lang)] === 'ai';
 
 export const isFreeNow = (item: Item) => availabilityActive(item.doc.availability) && !!item.doc.availability?.free;
 export const isLimitedNow = (item: Item) => availabilityActive(item.doc.availability) && !!item.doc.availability?.limited_time;

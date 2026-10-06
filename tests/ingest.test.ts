@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyze, diff, fillBlanks, writesFor, type Existing } from '../src/shared/ingest';
+import type { ItemDoc } from '../src/shared/schema';
 import { normalize } from '../src/shared/validate';
 import type { AnyDoc } from '../src/shared/schema';
 
@@ -19,6 +20,34 @@ const deathStranding = {
   genres: ['action'], release_us: '2019-11-08', release_jp: '2019-11-08', platforms: ['ps4', 'pc'],
   developers: ['kojima-productions'], creators: ['hideo-kojima'],
 };
+
+describe('source flags', () => {
+  const base = { ...deathStranding, title: { en: 'Death Stranding', ja: 'デス・ストランディング' } };
+
+  it('keep flags for text that is there and drop flags for empty text', () => {
+    const { doc, warnings } = normalize('item', { ...base, sources: { 'title.ja': 'tmdb', 'summary.th': 'ai' } });
+    expect(warnings).toEqual([]);
+    expect((doc as ItemDoc).sources).toEqual({ 'title.ja': 'tmdb' });
+  });
+
+  it('report malformed flags', () => {
+    const { warnings } = normalize('item', { ...base, sources: { 'title.ja': 'robot', 'platforms.en': 'ai' } });
+    expect(warnings).toHaveLength(2);
+  });
+
+  it('survive flattening for diffs (keys contain a dot)', () => {
+    const merged = fillBlanks({ id: 'x', title: { en: 'A' } } as never, { id: 'x', title: { en: 'A', th: 'เอ' }, sources: { 'title.th': 'ai' } } as never) as ItemDoc;
+    expect(merged.sources).toEqual({ 'title.th': 'ai' });
+  });
+
+  it('only come along with text that Fill blanks actually fills', () => {
+    const existing = { id: 'x', title: { en: 'A', th: 'ของฉัน' }, summary: { en: 'S' } };
+    const incoming = { id: 'x', title: { en: 'A', th: 'เอ' }, summary: { en: 'S', es: 'Hola' }, sources: { 'title.th': 'ai', 'summary.es': 'ai' } };
+    const merged = fillBlanks(existing as never, incoming as never) as ItemDoc;
+    expect(merged.title.th).toBe('ของฉัน');
+    expect(merged.sources).toEqual({ 'summary.es': 'ai' });
+  });
+});
 
 describe('normalize', () => {
   it('accepts friendly input and derives medium, year and id', () => {

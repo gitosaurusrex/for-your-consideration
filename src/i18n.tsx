@@ -94,6 +94,7 @@ const en = {
   clear: 'Clear all',
   results: (n: number) => `${n} result${n === 1 ? '' : 's'}`,
   pickSection: 'Pick a section to filter by its genres.',
+  autoTranslated: 'Translated automatically',
 };
 
 export type Strings = typeof en;
@@ -192,6 +193,7 @@ const strings: Record<Lang, Strings> = {
     clear: 'すべてクリア',
     results: (n: number) => `${n}件`,
     pickSection: 'カテゴリを選ぶと、そのジャンルで絞り込めます。',
+    autoTranslated: '自動翻訳',
   },
   th: {
     siteName: 'For Your Consideration',
@@ -284,6 +286,7 @@ const strings: Record<Lang, Strings> = {
     clear: 'ล้างทั้งหมด',
     results: (n: number) => `${n} รายการ`,
     pickSection: 'เลือกหมวดเพื่อกรองตามแนว',
+    autoTranslated: 'แปลโดยอัตโนมัติ',
   },
   es: {
     siteName: 'For Your Consideration',
@@ -376,6 +379,7 @@ const strings: Record<Lang, Strings> = {
     clear: 'Borrar todo',
     results: (n: number) => `${n} ${n === 1 ? 'resultado' : 'resultados'}`,
     pickSection: 'Elige una sección para filtrar por sus géneros.',
+    autoTranslated: 'Traducción automática',
   },
 };
 

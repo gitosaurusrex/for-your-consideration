@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
-import { getItem, itemArt, itemHue, related } from '../data';
+import { getItem, isAiTranslated, itemArt, itemHue, related } from '../data';
 import { flag, formatDate, useLang } from '../i18n';
 import { Art } from '../components/Art';
 import { AvailabilityBadge } from '../components/Availability';
@@ -131,6 +131,7 @@ function DetailView({ item }: { item: Item }) {
           </div>
           {facts && <div className="reveal" style={reveal(3)}>{facts}</div>}
           <p className="detail__summary reveal" style={reveal(4)}>{loc.summary}</p>
+          {isAiTranslated(d, 'summary', lang) && <p className="auto-translated reveal" style={reveal(4)}>{t.autoTranslated}</p>}
           <div className="reveal" style={reveal(5)}>{credits}</div>
           <div className="reveal" style={reveal(6)}><AvailabilityBadge item={item} /></div>
           {actions && <div className="detail__actions reveal" style={reveal(7)}>{actions}</div>}
