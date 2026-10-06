@@ -65,7 +65,7 @@ export interface ItemDoc {
   igdb_id?: string;
 }
 
-export interface PersonDoc { id: string; name: I18n; bio?: I18n; photo?: string; photo_credit?: string }
+export interface PersonDoc { id: string; name: I18n; bio?: I18n; bio_credit?: string; photo?: string; photo_credit?: string }
 export interface CompanyDoc { id: string; name: I18n; country?: string; logo?: string }
 export interface GenreDoc { id: string; medium: Medium; slug: string; name: I18n; hue?: number }
 export type AnyDoc = ItemDoc | PersonDoc | CompanyDoc | GenreDoc;
@@ -206,7 +206,8 @@ export const ENTITY_FIELDS: Record<Exclude<EntityType, 'item'>, FieldSpec[]> = {
   person: [
     f('id', 'ID (URL slug)', 'id', { hint: 'Leave blank to generate from the English name.' }),
     f('name', 'Name', 'text', { i18n: true, required: true, hint: '日本語: the name as written in Japan (e.g. ドゥニ・ヴィルヌーヴ, 小島秀夫).' }),
-    f('bio', 'Short bio', 'textarea', { i18n: true }),
+    f('bio', 'Short bio', 'textarea', { i18n: true, hint: '"Find art" on the headshot can fill this in from TMDB.' }),
+    f('bio_credit', 'Bio source', 'text', { hint: 'Shown under the bio. Required when the text comes from Wikipedia, e.g. "Bio: Wikipedia, CC BY-SA".' }),
     f('photo', 'Headshot', 'image'),
     f('photo_credit', 'Photo credit', 'text', { hint: 'Required for Wikimedia Commons photos, e.g. "Photo: Jane Doe, CC BY-SA 4.0".' }),
   ],

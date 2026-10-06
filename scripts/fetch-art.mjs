@@ -1,6 +1,6 @@
 // Fills in official artwork in an ingest file before you upload it:
 //   • Films & TV → poster + backdrop from TMDB          (needs TMDB_API_KEY)
-//   • People     → headshot from TMDB                   (needs TMDB_API_KEY)
+//   • People     → headshot + short bio from TMDB       (needs TMDB_API_KEY)
 //   • Games      → cover art from IGDB                   (needs TWITCH_CLIENT_ID + TWITCH_CLIENT_SECRET)
 //   • Music      → cover art from Spotify               (no key; needs a real open.spotify.com track/album link)
 //
@@ -62,17 +62,47 @@ async function titles() {
   }
 }
 
+// Same rules as shortBio in worker/art.ts: the first few sentences, skipping Wikipedia boilerplate.
+function shortBio(text, lang) {
+  const para = text?.split(/\n+/).map((s) => s.trim()).find((s) => s && !/^from wikipedia/i.test(s) && !/^description above from/i.test(s));
+  if (!para) return undefined;
+  const sentences = lang === 'ja' ? para.match(/[^。！？]+[。！？」]*/g) ?? [para] : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-Z"“(])/);
+  const limit = lang === 'ja' ? 220 : 450;
+  let out = '';
+  for (const s of sentences.slice(0, 3)) {
+    const next = out ? (lang === 'ja' ? out + s : `${out} ${s}`) : s;
+    if (out && next.length > limit) break;
+    out = next;
+  }
+  return out.trim() || undefined;
+}
+
+const hasBio = (p) => (typeof p.bio === 'string' ? !!p.bio : !!(p.bio?.en || p.bio?.ja));
+
 async function people() {
-  const list = (file.people ?? []).filter((p) => needs(p, 'photo'));
+  const list = (file.people ?? []).filter((p) => force || !p.photo || !hasBio(p));
   if (!list.length || !TMDB_API_KEY) return;
   for (const person of list) {
     try {
       const { results } = await tmdb('/search/person', { query: en(person.name) });
-      const hit = results.find((r) => r.profile_path);
-      if (!hit) { console.log(`  ? ${en(person.name)}: no TMDB photo — add one by hand (e.g. Wikimedia Commons, with photo_credit)`); continue; }
-      person.photo = `${TMDB_IMG}/w342${hit.profile_path}`;
+      const hit = results.find((r) => r.profile_path) ?? results[0];
+      if (!hit) { console.log(`  ? ${en(person.name)}: not on TMDB — add a photo and bio by hand`); continue; }
+      const got = [];
+      if (hit.profile_path && (force || !person.photo)) { person.photo = `${TMDB_IMG}/w342${hit.profile_path}`; got.push('photo'); }
+      if (force || !hasBio(person)) {
+        const [d, dJa] = await Promise.all([tmdb(`/person/${hit.id}`), tmdb(`/person/${hit.id}`, { language: 'ja-JP' }).catch(() => ({}))]);
+        const bioEn = shortBio(d.biography, 'en');
+        if (bioEn) {
+          // TMDB falls back to the English text when there's no Japanese bio; only keep a real translation.
+          const bioJa = dJa.biography && dJa.biography !== d.biography ? shortBio(dJa.biography, 'ja') : undefined;
+          person.bio = { en: bioEn, ...(bioJa ? { ja: bioJa } : {}) };
+          person.bio_credit = /wikipedia/i.test(`${d.biography} ${dJa.biography ?? ''}`) ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB';
+          got.push(bioJa ? 'bio (EN + 日本語)' : 'bio (EN)');
+        }
+      }
+      if (!got.length) { console.log(`  ? ${en(person.name)}: TMDB has no photo or bio for ${hit.name}`); continue; }
       changed++;
-      console.log(`  ✓ ${en(person.name)} → ${hit.name} (known for ${hit.known_for_department})`);
+      console.log(`  ✓ ${en(person.name)} → ${hit.name} (known for ${hit.known_for_department}): ${got.join(', ')}`);
     } catch (e) { console.log(`  ✗ ${en(person.name)}: ${e.message}`); }
   }
 }

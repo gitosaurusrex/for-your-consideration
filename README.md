@@ -147,7 +147,7 @@ Database migrations are applied as part of either path.
   - **⤓ Save a copy:** download a linked image into your own storage.
 
   Stored images live in Workers KV (free up to 1 GB) or an R2 bucket and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
-- **Artwork for batch files:** `npm run fetch-art -- my-batch.json` fills poster/cover/headshot links into a file before you upload it. Keys go in `.env` (see `.env.example`).
+- **Artwork and bios for batch files:** `npm run fetch-art -- my-batch.json` fills poster, cover and headshot links, plus short bios for people from TMDB, into a file before you upload it. Keys go in `.env` (see `.env.example`). For things already on the site: **Export everything**, run the script on the export, then upload it and choose **Fill blanks in all**.
 - **One-off edits:** Admin → Items / People / Studios / Genres.
   - The edit forms show English and Japanese side by side.
   - Pick people, studios and genres by name, or create them inline.

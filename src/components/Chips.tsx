@@ -12,11 +12,12 @@ export function initials(name: string) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-export function Avatar({ slug, size = 36 }: { slug: string; size?: number }) {
+/** A portrait frame (rounded rectangle) so headshots aren't cropped to a circle. `width` sets the size; the height follows the CSS aspect ratio. */
+export function Avatar({ slug, width = 30 }: { slug: string; width?: number }) {
   const p = getPerson(slug);
   const [failed, setFailed] = useState(false);
   return (
-    <span className="avatar" style={{ '--h': hueOf(slug), width: size, height: size } as CSSProperties} aria-hidden>
+    <span className="avatar" style={{ '--h': hueOf(slug), width } as CSSProperties} aria-hidden>
       {p?.doc.photo && !failed ? <img src={p.doc.photo} alt="" loading="lazy" onError={() => setFailed(true)} /> : initials(p?.en.name ?? slug)}
     </span>
   );

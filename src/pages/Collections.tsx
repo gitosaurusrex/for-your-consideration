@@ -58,7 +58,7 @@ export function PersonPage() {
     <div className="page collection" style={{ '--h': hueOf(slug) } as CSSProperties}>
       <header className={`page-head page-head--person ${p.doc.photo ? 'has-photo' : ''}`}>
         <div className="person-photo reveal" style={reveal(0)}>
-          <Avatar slug={slug} size={p.doc.photo ? 168 : 112} />
+          <Avatar slug={slug} width={p.doc.photo ? 168 : 112} />
           {p.doc.photo_credit && <small className="photo-credit">{p.doc.photo_credit}</small>}
         </div>
         <div className="person-info">
@@ -66,6 +66,7 @@ export function PersonPage() {
           <h1 className="page-title reveal" style={reveal(2)}>{p[lang].name}</h1>
           {altName !== p[lang].name && <p className="page-alt reveal" style={reveal(3)}>{altName}</p>}
           {p[lang].bio && <p className="bio reveal" style={reveal(4)}>{p[lang].bio}</p>}
+          {p[lang].bio && p.doc.bio_credit && <small className="bio-credit reveal" style={reveal(4)}>{p.doc.bio_credit}</small>}
         </div>
       </header>
       <Section title={`🎬 ${t.directed}`} items={directed} instance={`person-${slug}-dir`} index={5} />
