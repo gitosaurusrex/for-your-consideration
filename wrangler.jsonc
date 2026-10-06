@@ -1,5 +1,5 @@
-// Cloudflare Worker: serves the site (static assets) and the /api backend (D1 database).
-// See README → "Deploying" for the one-time setup.
+// Cloudflare Worker: serves the site (static assets), the /api backend (D1 database) and stored images (KV or R2).
+// See README → "Deploy" for the one-time setup.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "for-your-consideration",

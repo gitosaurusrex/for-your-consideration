@@ -47,7 +47,7 @@ Everything runs on Cloudflare's free tier.
 
 ## Run it locally
 
-Requires Node 22.9+.
+Requires Node 22.12+.
 
 ```bash
 npm install
@@ -62,7 +62,7 @@ npm test                         # validation, ingest and login tests
 
 ### 0. Before you start
 
-- A free [Cloudflare account](https://dash.cloudflare.com/sign-up), and Node 22.9+ on your computer.
+- A free [Cloudflare account](https://dash.cloudflare.com/sign-up), and Node 22.12+ on your computer.
 - Images are stored in Workers KV, which needs no payment method. (R2 is supported too, but enabling it asks for a card; see [Using R2 instead](#using-r2-instead-of-kv).)
 
 ### 1. Create the database and image storage, then deploy
@@ -82,9 +82,11 @@ Then deploy:
 npm run deploy     # type-checks and builds, applies database migrations, deploys
 ```
 
+The first time, Wrangler lists the database migrations it's about to apply and asks to proceed; answer yes.
+
 Wrangler prints your site's address, `https://for-your-consideration.<your-subdomain>.workers.dev`. Open it: the site loads, but it's empty until step 4. You can add your own domain any time under **Workers & Pages → for-your-consideration → Settings → Domains & Routes**.
 
-**Optional: deploy on every push.** Under **Workers & Pages → for-your-consideration → Settings → Builds**, connect the GitHub repo:
+**Optional: deploy on every push.** First commit and push your edited `wrangler.jsonc` (the database and namespace ids aren't secret), because Builds deploys whatever is in the repo. Then, under **Workers & Pages → for-your-consideration → Settings → Builds**, connect the GitHub repo:
 - Build command: `npm run build`
 - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 
@@ -92,7 +94,7 @@ If a build fails on the migrations step with a permissions error, set the deploy
 
 #### Using R2 instead of KV
 
-KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a personal catalog. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and deploy. Images already in KV aren't moved automatically.
+KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a personal catalog. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and run `npm run deploy` (it rebuilds, which picks up the change). Images already in KV aren't moved automatically.
 
 ### 2. Set the admin password
 
