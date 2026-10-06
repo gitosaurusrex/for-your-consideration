@@ -459,7 +459,6 @@ p { margin: 0; }
 .detail__title { font-family: var(--font-display); font-weight: 900; font-size: clamp(38px, 6vw, 72px); line-height: 1.02; letter-spacing: -0.025em; margin: 8px 0 6px; text-wrap: balance; }
 :lang(ja) .detail__title { letter-spacing: 0; line-height: 1.25; font-weight: 800; font-size: clamp(30px, 4.4vw, 54px); }
 .detail__alt-title { font-size: 18px; color: var(--muted); font-family: var(--font-display); font-style: italic; }
-.detail__alt-title:lang(ja) { font-family: 'Shippori Mincho B1', serif; font-style: normal; }
 .detail__tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 22px; }
 .detail__summary { font-size: clamp(16.5px, 1.6vw, 19px); color: var(--text-soft); max-width: 40em; text-wrap: pretty; }
 .credits { margin-top: 22px; }

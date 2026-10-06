@@ -31,13 +31,13 @@ export function GenrePage() {
   usePageHue(hue);
   if (!g) return <NotFound />;
   const items = itemsInGenre(m, slug);
-  const altName = g[lang === 'en' ? 'ja' : 'en'].name;
+  const altName = lang === 'en' ? undefined : g.en.name;
   return (
     <div className="page collection" style={{ '--h': hue } as CSSProperties}>
       <header className="page-head page-head--banner">
         <p className="eyebrow reveal" style={reveal(0)}>{ICON[m]} {t.sectionName[m]} · {t.genre} · {t.recsCount(items.length)}</p>
         <h1 className="page-title page-title--huge reveal" style={reveal(1)}><span className="hash">#</span>{g[lang].name}</h1>
-        {altName !== g[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
+        {altName && altName !== g[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
       </header>
       <Grid items={items} instance={`genre-${m}-${slug}`} />
     </div>
@@ -53,7 +53,7 @@ export function PersonPage() {
   const { directed, starred, recorded, created } = worksOf(slug);
   const total = new Set([...directed, ...starred, ...recorded, ...created]).size;
   if (!total) return <NotFound />;
-  const altName = p[lang === 'en' ? 'ja' : 'en'].name;
+  const altName = lang === 'en' ? undefined : p.en.name;
   return (
     <div className="page collection" style={{ '--h': hueOf(slug) } as CSSProperties}>
       <header className={`page-head page-head--person ${p.doc.photo ? 'has-photo' : ''}`}>
@@ -64,7 +64,7 @@ export function PersonPage() {
         <div className="person-info">
           <p className="eyebrow reveal" style={reveal(1)}>{t.person} · {t.recsCount(total)}</p>
           <h1 className="page-title reveal" style={reveal(2)}>{p[lang].name}</h1>
-          {altName !== p[lang].name && <p className="page-alt reveal" style={reveal(3)}>{altName}</p>}
+          {altName && altName !== p[lang].name && <p className="page-alt reveal" style={reveal(3)}>{altName}</p>}
           {p[lang].bio && <p className="bio reveal" style={reveal(4)}>{p[lang].bio}</p>}
           {p[lang].bio && isAiTranslated(p.doc, 'bio', lang) && <small className="auto-translated reveal" style={reveal(4)}>{t.autoTranslated}</small>}
           {p[lang].bio && p.doc.bio_credit && <small className="bio-credit reveal" style={reveal(4)}>{p.doc.bio_credit}</small>}
@@ -85,7 +85,7 @@ export function StudioPage() {
   usePageHue(hueOf(slug));
   if (!c) return <NotFound />;
   const { developed, published } = studioWorks(slug);
-  const altName = c[lang === 'en' ? 'ja' : 'en'].name;
+  const altName = lang === 'en' ? undefined : c.en.name;
   return (
     <div className="page collection" style={{ '--h': hueOf(slug) } as CSSProperties}>
       <header className="page-head page-head--banner">
@@ -93,7 +93,7 @@ export function StudioPage() {
           {t.studio}{c.doc.country && <> · {flag(c.doc.country)} {countryName(c.doc.country, lang)}</>} · {t.recsCount(developed.length + published.length)}
         </p>
         <h1 className="page-title page-title--huge reveal" style={reveal(1)}>{c[lang].name}</h1>
-        {altName !== c[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
+        {altName && altName !== c[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
       </header>
       <Section title={`🛠 ${t.developed}`} items={developed} instance={`studio-${slug}-dev`} index={3} />
       <Section title={`📦 ${t.published}`} items={published} instance={`studio-${slug}-pub`} index={4} />
