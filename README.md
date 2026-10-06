@@ -84,9 +84,9 @@ npm run deploy     # type-checks and builds, applies database migrations, deploy
 
 The first time, Wrangler lists the database migrations it's about to apply and asks to proceed; answer yes.
 
-Wrangler prints your site's address, `https://for-your-consideration.<your-subdomain>.workers.dev`. Open it: the site loads, but it's empty until step 4. You can add your own domain any time under **Workers & Pages → for-your-consideration → Settings → Domains & Routes**.
+Wrangler prints your site's address, `https://the-stacks.<your-subdomain>.workers.dev`. Open it: the site loads, but it's empty until step 4. You can add your own domain any time under **Workers & Pages → the-stacks → Settings → Domains & Routes**.
 
-**Optional: deploy on every push.** First commit and push your edited `wrangler.jsonc` (the database and namespace ids aren't secret), because Builds deploys whatever is in the repo. Then, under **Workers & Pages → for-your-consideration → Settings → Builds**, connect the GitHub repo:
+**Optional: deploy on every push.** First commit and push your edited `wrangler.jsonc` (the database and namespace ids aren't secret), because Builds deploys whatever is in the repo. Then, under **Workers & Pages → the-stacks → Settings → Builds**, connect the GitHub repo:
 - Build command: `npm run build`
 - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 
