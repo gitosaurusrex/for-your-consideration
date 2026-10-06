@@ -149,11 +149,16 @@ p { margin: 0; }
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 16px;
   padding: 12px var(--gutter);
+  /* Clear at the top of the page, so the background glow runs behind it; frosted once content scrolls under it. */
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+  view-transition-name: header;
+}
+.site-header.is-scrolled {
   background: linear-gradient(to bottom, rgb(var(--bg-rgb) / 0.85), rgb(var(--bg-rgb) / 0.55));
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  border-bottom: 1px solid var(--line);
-  view-transition-name: header;
+  border-bottom-color: var(--line);
 }
 .logo { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
 .logo__mark {

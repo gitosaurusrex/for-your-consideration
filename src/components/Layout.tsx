@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { enabledMedia } from '../data';
 import { useLang } from '../i18n';
@@ -61,10 +61,23 @@ function Nav() {
   );
 }
 
+/** True once the page has scrolled, so the header only frosts over when there's content under it. */
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 4);
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+  return scrolled;
+}
+
 export function Layout() {
   const { t } = useLang();
   const { pathname } = useLocation();
   usePeriod(); // keeps the time-of-day palette current
+  const scrolled = useScrolled();
   return (
     <>
       <a href="#main" className="skip-link">{t.skip}</a>
@@ -74,7 +87,7 @@ export function Layout() {
         <span className="ambient__blob ambient__blob--c" />
       </div>
       <div className="grain" aria-hidden />
-      <header className="site-header">
+      <header className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
         <VLink to="/" className="logo" aria-label={t.siteName}>
           <span className="logo__mark" aria-hidden>
             <span>F</span><span>Y</span><span>C</span>
