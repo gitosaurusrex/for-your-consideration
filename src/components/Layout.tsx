@@ -188,6 +188,9 @@ export function Layout() {
       </main>
       <footer className="site-footer">
         <span>{t.siteName}</span>
+        <small className="site-footer__version" title={__APP_COMMIT__ ? `Build ${__APP_COMMIT__}` : undefined}>
+          v{__APP_VERSION__}{__APP_COMMIT__ && ` · ${__APP_COMMIT__}`}
+        </small>
         <small className="site-footer__credit">Some artwork via TMDB and Wikipedia. This site uses the TMDB API but is not endorsed or certified by TMDB.</small>
       </footer>
       <ScrollRestoration />
