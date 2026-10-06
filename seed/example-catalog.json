@@ -1,0 +1,1159 @@
+{
+  "version": 1,
+  "genres": [
+    {
+      "medium": "watch",
+      "slug": "action",
+      "name": {
+        "en": "Action",
+        "ja": "アクション"
+      },
+      "hue": 8
+    },
+    {
+      "medium": "listen",
+      "slug": "alternative",
+      "name": {
+        "en": "Alternative",
+        "ja": "オルタナティブ"
+      },
+      "hue": 222
+    },
+    {
+      "medium": "watch",
+      "slug": "comedy",
+      "name": {
+        "en": "Comedy",
+        "ja": "コメディ"
+      },
+      "hue": 45
+    },
+    {
+      "medium": "watch",
+      "slug": "drama",
+      "name": {
+        "en": "Drama",
+        "ja": "ドラマ"
+      },
+      "hue": 18
+    },
+    {
+      "medium": "watch",
+      "slug": "family",
+      "name": {
+        "en": "Family",
+        "ja": "ファミリー"
+      },
+      "hue": 130
+    },
+    {
+      "medium": "listen",
+      "slug": "folk",
+      "name": {
+        "en": "Folk",
+        "ja": "フォーク"
+      },
+      "hue": 85
+    },
+    {
+      "medium": "listen",
+      "slug": "indie-rock",
+      "name": {
+        "en": "Indie Rock",
+        "ja": "インディー・ロック"
+      },
+      "hue": 165
+    },
+    {
+      "medium": "watch",
+      "slug": "mystery",
+      "name": {
+        "en": "Mystery",
+        "ja": "ミステリー"
+      },
+      "hue": 245
+    },
+    {
+      "medium": "listen",
+      "slug": "pop",
+      "name": {
+        "en": "Pop",
+        "ja": "ポップ"
+      },
+      "hue": 325
+    },
+    {
+      "medium": "listen",
+      "slug": "r-and-b",
+      "name": {
+        "en": "R&B",
+        "ja": "R&B"
+      },
+      "hue": 305
+    },
+    {
+      "medium": "watch",
+      "slug": "romance",
+      "name": {
+        "en": "Romance",
+        "ja": "ロマンス"
+      },
+      "hue": 345
+    },
+    {
+      "medium": "watch",
+      "slug": "science-fiction",
+      "name": {
+        "en": "Sci-Fi",
+        "ja": "SF"
+      },
+      "hue": 200
+    },
+    {
+      "medium": "watch",
+      "slug": "thriller",
+      "name": {
+        "en": "Thriller",
+        "ja": "スリラー"
+      },
+      "hue": 268
+    },
+    {
+      "medium": "watch",
+      "slug": "indie",
+      "name": {
+        "en": "Indie",
+        "ja": "インディー"
+      },
+      "hue": 300
+    },
+    {
+      "medium": "play",
+      "slug": "action",
+      "name": {
+        "en": "Action",
+        "ja": "アクション"
+      },
+      "hue": 8
+    },
+    {
+      "medium": "play",
+      "slug": "adventure",
+      "name": {
+        "en": "Adventure",
+        "ja": "アドベンチャー"
+      },
+      "hue": 160
+    },
+    {
+      "medium": "play",
+      "slug": "stealth",
+      "name": {
+        "en": "Stealth",
+        "ja": "ステルス"
+      },
+      "hue": 250
+    },
+    {
+      "medium": "play",
+      "slug": "exploration",
+      "name": {
+        "en": "Exploration",
+        "ja": "探索"
+      },
+      "hue": 190
+    },
+    {
+      "medium": "play",
+      "slug": "puzzle",
+      "name": {
+        "en": "Puzzle",
+        "ja": "パズル"
+      },
+      "hue": 50
+    },
+    {
+      "medium": "play",
+      "slug": "indie",
+      "name": {
+        "en": "Indie",
+        "ja": "インディー"
+      },
+      "hue": 300
+    }
+  ],
+  "companies": [
+    {
+      "id": "kojima-productions",
+      "name": {
+        "en": "Kojima Productions",
+        "ja": "コジマプロダクション"
+      },
+      "country": "JP"
+    },
+    {
+      "id": "sony-interactive-entertainment",
+      "name": {
+        "en": "Sony Interactive Entertainment",
+        "ja": "ソニー・インタラクティブエンタテインメント"
+      },
+      "country": "US"
+    },
+    {
+      "id": "505-games",
+      "name": {
+        "en": "505 Games",
+        "ja": "505 Games"
+      },
+      "country": "IT"
+    },
+    {
+      "id": "konami",
+      "name": {
+        "en": "Konami",
+        "ja": "コナミ"
+      },
+      "country": "JP"
+    },
+    {
+      "id": "mobius-digital",
+      "name": {
+        "en": "Mobius Digital",
+        "ja": "モビウス・デジタル"
+      },
+      "country": "US"
+    },
+    {
+      "id": "annapurna-interactive",
+      "name": {
+        "en": "Annapurna Interactive",
+        "ja": "アンナプルナ・インタラクティブ"
+      },
+      "country": "US"
+    }
+  ],
+  "people": [
+    {
+      "id": "adam-scott",
+      "name": {
+        "en": "Adam Scott",
+        "ja": "アダム・スコット"
+      }
+    },
+    {
+      "id": "amy-adams",
+      "name": {
+        "en": "Amy Adams",
+        "ja": "エイミー・アダムス"
+      }
+    },
+    {
+      "id": "andrew-scott",
+      "name": {
+        "en": "Andrew Scott",
+        "ja": "アンドリュー・スコット"
+      }
+    },
+    {
+      "id": "austin-butler",
+      "name": {
+        "en": "Austin Butler",
+        "ja": "オースティン・バトラー"
+      }
+    },
+    {
+      "id": "ayo-edebiri",
+      "name": {
+        "en": "Ayo Edebiri",
+        "ja": "アヨ・エデビリ"
+      }
+    },
+    {
+      "id": "ben-whishaw",
+      "name": {
+        "en": "Ben Whishaw",
+        "ja": "ベン・ウィショー"
+      }
+    },
+    {
+      "id": "britt-lower",
+      "name": {
+        "en": "Britt Lower",
+        "ja": "ブリット・ロウワー"
+      }
+    },
+    {
+      "id": "celine-song",
+      "name": {
+        "en": "Celine Song",
+        "ja": "セリーヌ・ソン"
+      },
+      "bio": {
+        "en": "Korean-Canadian playwright and filmmaker. Born in Seoul and raised partly in Canada, she wrote acclaimed plays in New York before making her feature debut with Past Lives (2023), which earned Oscar nominations for Best Picture and Best Original Screenplay.",
+        "ja": "韓国系カナダ人の劇作家・映画監督。ソウルで生まれ、カナダで育つ。ニューヨークで劇作家として評価を得たのち、長編デビュー作『パスト ライブス／再会』（2023）でアカデミー賞作品賞・脚本賞にノミネートされた。"
+      }
+    },
+    {
+      "id": "christopher-storer",
+      "name": {
+        "en": "Christopher Storer",
+        "ja": "クリストファー・ストーラー"
+      }
+    },
+    {
+      "id": "dan-erickson",
+      "name": {
+        "en": "Dan Erickson",
+        "ja": "ダン・エリクソン"
+      }
+    },
+    {
+      "id": "daniel-kwan",
+      "name": {
+        "en": "Daniel Kwan",
+        "ja": "ダニエル・クワン"
+      },
+      "bio": {
+        "en": "One half of the directing duo Daniels, with Daniel Scheinert. They made their name with music videos like \"Turn Down for What\", then Swiss Army Man (2016), and won the Oscars for Best Picture and Best Director for Everything Everywhere All at Once.",
+        "ja": "ダニエル・シャイナートとの監督コンビ「ダニエルズ」の一人。「Turn Down for What」などのミュージックビデオで注目され、『スイス・アーミー・マン』（2016）を経て、『エブリシング・エブリウェア・オール・アット・ワンス』でアカデミー賞作品賞・監督賞を受賞した。"
+      }
+    },
+    {
+      "id": "daniel-scheinert",
+      "name": {
+        "en": "Daniel Scheinert",
+        "ja": "ダニエル・シャイナート"
+      },
+      "bio": {
+        "en": "One half of the directing duo Daniels, with Daniel Kwan. They made their name with music videos like \"Turn Down for What\", then Swiss Army Man (2016), and won the Oscars for Best Picture and Best Director for Everything Everywhere All at Once.",
+        "ja": "ダニエル・クワンとの監督コンビ「ダニエルズ」の一人。「Turn Down for What」などのミュージックビデオで注目され、『スイス・アーミー・マン』（2016）を経て、『エブリシング・エブリウェア・オール・アット・ワンス』でアカデミー賞作品賞・監督賞を受賞した。"
+      }
+    },
+    {
+      "id": "denis-villeneuve",
+      "name": {
+        "en": "Denis Villeneuve",
+        "ja": "ドゥニ・ヴィルヌーヴ"
+      },
+      "bio": {
+        "en": "French-Canadian director from Québec, known for intense, beautifully crafted films: Incendies, Prisoners, Sicario, Arrival, Blade Runner 2049 and the Dune films.",
+        "ja": "カナダ・ケベック州出身の映画監督。『灼熱の魂』『プリズナーズ』『ボーダーライン』『メッセージ』『ブレードランナー 2049』、そして『DUNE／デューン』シリーズなど、緊張感と映像美に満ちた作品で知られる。"
+      }
+    },
+    {
+      "id": "ebon-moss-bachrach",
+      "name": {
+        "en": "Ebon Moss-Bachrach",
+        "ja": "エボン・モス＝バクラック"
+      }
+    },
+    {
+      "id": "forest-whitaker",
+      "name": {
+        "en": "Forest Whitaker",
+        "ja": "フォレスト・ウィテカー"
+      }
+    },
+    {
+      "id": "frank-ocean",
+      "name": {
+        "en": "Frank Ocean",
+        "ja": "フランク・オーシャン"
+      },
+      "bio": {
+        "en": "American singer, songwriter and producer. After emerging with the collective Odd Future, he released channel ORANGE (2012) and Blonde (2016), two of the most influential R&B albums of their era.",
+        "ja": "アメリカのシンガーソングライター、プロデューサー。ヒップホップ集団オッド・フューチャーで頭角を現し、『channel ORANGE』（2012）と『Blonde』（2016）という、時代を代表するR&Bアルバムを発表した。"
+      }
+    },
+    {
+      "id": "greta-lee",
+      "name": {
+        "en": "Greta Lee",
+        "ja": "グレタ・リー"
+      },
+      "bio": {
+        "en": "American actor known for Russian Doll and The Morning Show. Her lead role in Past Lives earned her a Golden Globe nomination.",
+        "ja": "アメリカの俳優。『ロシアン・ドール：謎のタイムループ』『ザ・モーニングショー』などで知られ、『パスト ライブス／再会』の主演でゴールデングローブ賞にノミネートされた。"
+      }
+    },
+    {
+      "id": "hugh-grant",
+      "name": {
+        "en": "Hugh Grant",
+        "ja": "ヒュー・グラント"
+      }
+    },
+    {
+      "id": "jamie-lee-curtis",
+      "name": {
+        "en": "Jamie Lee Curtis",
+        "ja": "ジェイミー・リー・カーティス"
+      }
+    },
+    {
+      "id": "jeremy-allen-white",
+      "name": {
+        "en": "Jeremy Allen White",
+        "ja": "ジェレミー・アレン・ホワイト"
+      }
+    },
+    {
+      "id": "jeremy-renner",
+      "name": {
+        "en": "Jeremy Renner",
+        "ja": "ジェレミー・レナー"
+      }
+    },
+    {
+      "id": "john-magaro",
+      "name": {
+        "en": "John Magaro",
+        "ja": "ジョン・マガロ"
+      }
+    },
+    {
+      "id": "john-turturro",
+      "name": {
+        "en": "John Turturro",
+        "ja": "ジョン・タトゥーロ"
+      }
+    },
+    {
+      "id": "ke-huy-quan",
+      "name": {
+        "en": "Ke Huy Quan",
+        "ja": "キー・ホイ・クァン"
+      }
+    },
+    {
+      "id": "michelle-yeoh",
+      "name": {
+        "en": "Michelle Yeoh",
+        "ja": "ミシェル・ヨー"
+      },
+      "bio": {
+        "en": "Malaysian actress who became a star of Hong Kong action cinema before Tomorrow Never Dies, Crouching Tiger, Hidden Dragon and Crazy Rich Asians. Everything Everywhere All at Once made her the first Asian woman to win the Oscar for Best Actress.",
+        "ja": "マレーシア出身の俳優。香港アクション映画でスターとなり、『007 トゥモロー・ネバー・ダイ』『グリーン・デスティニー』『クレイジー・リッチ！』などで活躍。『エブリシング・エブリウェア・オール・アット・ワンス』で、アジア系女性として初めてアカデミー賞主演女優賞を受賞した。"
+      }
+    },
+    {
+      "id": "olivia-colman",
+      "name": {
+        "en": "Olivia Colman",
+        "ja": "オリヴィア・コールマン"
+      }
+    },
+    {
+      "id": "patricia-arquette",
+      "name": {
+        "en": "Patricia Arquette",
+        "ja": "パトリシア・アークエット"
+      }
+    },
+    {
+      "id": "paul-king",
+      "name": {
+        "en": "Paul King",
+        "ja": "ポール・キング"
+      },
+      "bio": {
+        "en": "English director and writer who got his start on the cult comedy The Mighty Boosh, then made the first two Paddington films and Wonka (2023).",
+        "ja": "イギリスの監督・脚本家。カルト的人気のコメディ『マイティ・ブーシュ』で頭角を現し、『パディントン』『パディントン2』、そして『ウォンカとチョコレート工場のはじまり』（2023）を手がけた。"
+      }
+    },
+    {
+      "id": "phoebe-bridgers",
+      "name": {
+        "en": "Phoebe Bridgers",
+        "ja": "フィービー・ブリジャーズ"
+      },
+      "bio": {
+        "en": "Singer-songwriter from Los Angeles known for hushed, funny, devastating songs: Stranger in the Alps (2017), Punisher (2020), and one third of the supergroup boygenius.",
+        "ja": "ロサンゼルス出身のシンガーソングライター。ささやくような歌声と、ユーモラスで胸を打つ歌詞で知られる。ソロ作『Stranger in the Alps』（2017）、『Punisher』（2020）のほか、boygeniusのメンバーとしても活動。"
+      }
+    },
+    {
+      "id": "phoebe-waller-bridge",
+      "name": {
+        "en": "Phoebe Waller-Bridge",
+        "ja": "フィービー・ウォーラー＝ブリッジ"
+      },
+      "bio": {
+        "en": "English writer and actor. She turned her one-woman stage show into Fleabag, which she wrote and starred in, and was head writer of Killing Eve's first season.",
+        "ja": "イギリスの脚本家・俳優。自作の一人芝居をもとにドラマ『Fleabag フリーバッグ』を生み出し、脚本と主演を務めた。『キリング・イヴ／Killing Eve』シーズン1の脚本も手がけた。"
+      }
+    },
+    {
+      "id": "radiohead",
+      "name": {
+        "en": "Radiohead",
+        "ja": "レディオヘッド"
+      },
+      "bio": {
+        "en": "English band from Abingdon, Oxfordshire. From OK Computer to Kid A to In Rainbows — famously released as pay-what-you-want in 2007 — they keep reinventing what a rock band can sound like.",
+        "ja": "イギリス・オックスフォードシャー州アビングドン出身のバンド。『OK コンピューター』『キッドA』、そして2007年に「価格は自由」で発表した『イン・レインボウズ』まで、ロックバンドの可能性を更新し続けてきた。"
+      }
+    },
+    {
+      "id": "rebecca-ferguson",
+      "name": {
+        "en": "Rebecca Ferguson",
+        "ja": "レベッカ・ファーガソン"
+      }
+    },
+    {
+      "id": "sally-hawkins",
+      "name": {
+        "en": "Sally Hawkins",
+        "ja": "サリー・ホーキンス"
+      }
+    },
+    {
+      "id": "sian-clifford",
+      "name": {
+        "en": "Sian Clifford",
+        "ja": "シアン・クリフォード"
+      }
+    },
+    {
+      "id": "stephanie-hsu",
+      "name": {
+        "en": "Stephanie Hsu",
+        "ja": "ステファニー・スー"
+      }
+    },
+    {
+      "id": "sza",
+      "name": {
+        "en": "SZA",
+        "ja": "SZA（シザ）"
+      }
+    },
+    {
+      "id": "teo-yoo",
+      "name": {
+        "en": "Teo Yoo",
+        "ja": "ユ・テオ"
+      }
+    },
+    {
+      "id": "timothee-chalamet",
+      "name": {
+        "en": "Timothée Chalamet",
+        "ja": "ティモシー・シャラメ"
+      }
+    },
+    {
+      "id": "zendaya",
+      "name": {
+        "en": "Zendaya",
+        "ja": "ゼンデイヤ"
+      }
+    },
+    {
+      "id": "hideo-kojima",
+      "name": {
+        "en": "Hideo Kojima",
+        "ja": "小島秀夫"
+      },
+      "bio": {
+        "en": "Japanese game creator, born in Tokyo in 1963. At Konami he created the Metal Gear series, which pioneered stealth games and cinematic storytelling. In 2015 he founded the independent studio Kojima Productions, whose first game was Death Stranding (2019).",
+        "ja": "1963年東京生まれのゲームクリエイター。コナミで「メタルギア」シリーズを生み出し、ステルスゲームと映画的な演出の先駆けとなった。2015年に独立スタジオ「コジマプロダクション」を設立し、第1作『DEATH STRANDING』（2019）を発表した。"
+      }
+    },
+    {
+      "id": "yoji-shinkawa",
+      "name": {
+        "en": "Yoji Shinkawa",
+        "ja": "新川洋司"
+      },
+      "bio": {
+        "en": "Japanese artist who designed the characters and mechs of Metal Gear Solid in his distinctive ink-brush style. He is art director at Kojima Productions and worked on Death Stranding.",
+        "ja": "「メタルギア ソリッド」シリーズのキャラクターやメカを、筆を使った独特の画風でデザインしたアーティスト。コジマプロダクションのアートディレクターとして『DEATH STRANDING』にも参加している。"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "arrival",
+      "kind": "film",
+      "title": {
+        "en": "Arrival",
+        "ja": "メッセージ"
+      },
+      "summary": {
+        "en": "Twelve mysterious ships appear above cities around the world. Linguist Louise Banks is brought in by the military with one job: find a way to talk to whatever is inside, and work out why they came — before the rest of the world loses patience.",
+        "ja": "世界各地の上空に、12隻の謎の宇宙船が突如現れる。軍に招かれた言語学者ルイーズの任務はただひとつ。船の中にいる「何か」と対話する方法を見つけ、彼らが来た理由を知ること。世界の我慢が尽きてしまう前に。"
+      },
+      "note": {
+        "en": "A quiet, thoughtful sci-fi film about language. As someone who lives between two languages, I think this one will hit you.",
+        "ja": "言葉についての、静かで思慮深いSF。二つの言語のあいだで暮らしているあなたには、きっと響くと思う。"
+      },
+      "genres": [
+        "science-fiction",
+        "drama",
+        "mystery"
+      ],
+      "year": 2016,
+      "countries": [
+        "US"
+      ],
+      "directors": [
+        "denis-villeneuve"
+      ],
+      "cast": [
+        "amy-adams",
+        "jeremy-renner",
+        "forest-whitaker"
+      ],
+      "runtime": 116,
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Arrival",
+      "added": "2026-09-12"
+    },
+    {
+      "id": "dune-part-two",
+      "kind": "film",
+      "title": {
+        "en": "Dune: Part Two",
+        "ja": "デューン 砂の惑星PART2"
+      },
+      "summary": {
+        "en": "Paul Atreides joins the Fremen of the desert planet Arrakis and learns their ways, while the powers that destroyed his family tighten their grip. A sweeping, enormous epic about prophecy, power and the stories people choose to believe.",
+        "ja": "砂の惑星アラキスで砂漠の民フレメンと共に生きることを選んだポール・アトレイデス。彼らの生き方を学ぶ一方で、一族を滅ぼした者たちは支配の手を強めていく。予言と権力、そして人々が信じたがる「物語」を描く壮大な叙事詩。"
+      },
+      "note": {
+        "en": "Watch Part One first, and on the biggest screen you can find. The sound design alone is worth it.",
+        "ja": "まずはPART1から、できるだけ大きな画面で観てね。音響だけでも観る価値あり。"
+      },
+      "genres": [
+        "science-fiction",
+        "action"
+      ],
+      "year": 2024,
+      "countries": [
+        "US"
+      ],
+      "directors": [
+        "denis-villeneuve"
+      ],
+      "cast": [
+        "timothee-chalamet",
+        "zendaya",
+        "rebecca-ferguson",
+        "austin-butler"
+      ],
+      "runtime": 166,
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Dune%3A%20Part%20Two",
+      "added": "2026-08-30"
+    },
+    {
+      "id": "everything-everywhere-all-at-once",
+      "kind": "film",
+      "title": {
+        "en": "Everything Everywhere All at Once",
+        "ja": "エブリシング・エブリウェア・オール・アット・ワンス"
+      },
+      "summary": {
+        "en": "Evelyn runs a struggling laundromat, her taxes are being audited, and her family barely talks to her. Then, in the middle of a meeting at the IRS, she learns that she can tap into the lives of countless other versions of herself — and that she may be the only one who can stop something very big and very strange.",
+        "ja": "コインランドリーの経営は傾き、税務調査は迫り、家族ともすれ違ってばかりのエヴリン。ところが国税庁での面談の最中、彼女は無数の「別の人生を生きる自分」の力を借りられることを知る。そして、とてつもなく大きくて奇妙な何かを止められるのは、自分だけかもしれないと。"
+      },
+      "note": {
+        "en": "Chaotic, ridiculous and secretly one of the most tender films about family I know. Do not read anything about it first.",
+        "ja": "めちゃくちゃでバカバカしいのに、実は家族についての最高に優しい映画。事前に何も調べずに観てほしい！"
+      },
+      "genres": [
+        "science-fiction",
+        "comedy",
+        "action",
+        "drama",
+        "indie"
+      ],
+      "year": 2022,
+      "countries": [
+        "US"
+      ],
+      "directors": [
+        "daniel-kwan",
+        "daniel-scheinert"
+      ],
+      "cast": [
+        "michelle-yeoh",
+        "ke-huy-quan",
+        "stephanie-hsu",
+        "jamie-lee-curtis"
+      ],
+      "runtime": 139,
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Everything%20Everywhere%20All%20at%20Once",
+      "featured": true,
+      "added": "2026-09-20"
+    },
+    {
+      "id": "fleabag",
+      "kind": "tv",
+      "title": {
+        "en": "Fleabag",
+        "ja": "Fleabag フリーバッグ"
+      },
+      "summary": {
+        "en": "A sharp, messy, very funny woman tries to keep her London café and her life afloat, while constantly breaking the fourth wall to tell you — the viewer — exactly what she really thinks. Only twelve episodes, and every one of them counts.",
+        "ja": "毒舌で、だらしなくて、とびきり面白い女性が、ロンドンのカフェと自分の人生をなんとか立て直そうとする。そのあいだずっと、カメラ越しに「あなた」へ本音を語りかけてくる。全12話、無駄な回はひとつもない。"
+      },
+      "note": {
+        "en": "Season 2 is a perfect piece of television. Stay with it.",
+        "ja": "シーズン2は完璧なテレビドラマ。最後まで観てね。"
+      },
+      "genres": [
+        "comedy",
+        "drama"
+      ],
+      "year": 2016,
+      "countries": [
+        "GB"
+      ],
+      "directors": [
+        "phoebe-waller-bridge"
+      ],
+      "cast": [
+        "phoebe-waller-bridge",
+        "sian-clifford",
+        "olivia-colman",
+        "andrew-scott"
+      ],
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Fleabag",
+      "added": "2026-07-30"
+    },
+    {
+      "id": "paddington-2",
+      "kind": "film",
+      "title": {
+        "en": "Paddington 2",
+        "ja": "パディントン2"
+      },
+      "summary": {
+        "en": "Paddington has settled happily into London life with the Brown family and finds the perfect birthday present for his Aunt Lucy: a one-of-a-kind pop-up book. He takes on odd jobs to buy it — and then the book is stolen.",
+        "ja": "ブラウン一家とロンドンで幸せに暮らすパディントン。ルーシーおばさんの誕生日にぴったりのプレゼント、世界に一冊だけの飛び出す絵本を見つけ、お金を貯めるためにアルバイトを始める。ところが、その絵本が盗まれてしまい……。"
+      },
+      "note": {
+        "en": "Possibly the kindest film ever made. Hugh Grant is having the time of his life.",
+        "ja": "たぶん世界一やさしい映画。ヒュー・グラントが心から楽しんで演じているのが最高。"
+      },
+      "genres": [
+        "family",
+        "comedy"
+      ],
+      "year": 2017,
+      "countries": [
+        "GB",
+        "FR"
+      ],
+      "directors": [
+        "paul-king"
+      ],
+      "cast": [
+        "ben-whishaw",
+        "hugh-grant",
+        "sally-hawkins"
+      ],
+      "runtime": 104,
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Paddington%202",
+      "availability": {
+        "free": true,
+        "limited_time": true,
+        "until": "2026-12-31"
+      },
+      "added": "2026-08-18"
+    },
+    {
+      "id": "past-lives",
+      "kind": "film",
+      "title": {
+        "en": "Past Lives",
+        "ja": "パスト ライブス／再会"
+      },
+      "summary": {
+        "en": "Nora and Hae Sung were inseparable classmates in Seoul until her family emigrated. Twenty-some years later, with an ocean and an entire life between them, they find each other again — first over shaky video calls, then for one week in New York — and have to face who they became, and who they might have been.",
+        "ja": "ソウルで仲の良い同級生だったノラとヘソン。ノラの家族の移住で離ればなれになった二人は、二十数年後、海を隔てたまま再びつながる。最初はぎこちないビデオ通話で、そしてニューヨークでの一週間で。変わってしまった自分たちと、ありえたかもしれない人生に向き合う物語。"
+      },
+      "note": {
+        "en": "Bring tissues. The film leans on the Korean idea of \"in-yun\" — the connections between people across lifetimes — and I think you will recognise it immediately as 縁.",
+        "ja": "ティッシュを用意してね。作中に出てくる韓国の「イニョン（縁）」という考え方は、きっとすぐにピンとくると思う。"
+      },
+      "genres": [
+        "drama",
+        "romance",
+        "indie"
+      ],
+      "year": 2023,
+      "countries": [
+        "US",
+        "KR"
+      ],
+      "directors": [
+        "celine-song"
+      ],
+      "cast": [
+        "greta-lee",
+        "teo-yoo",
+        "john-magaro"
+      ],
+      "runtime": 106,
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Past%20Lives",
+      "featured": true,
+      "added": "2026-10-01"
+    },
+    {
+      "id": "severance",
+      "kind": "tv",
+      "title": {
+        "en": "Severance",
+        "ja": "セヴェランス"
+      },
+      "summary": {
+        "en": "Employees at Lumon Industries have undergone a procedure that splits their memories in two: their work selves know nothing about their lives outside, and their outside selves know nothing about work. Mark has never questioned it — until a new colleague arrives and things start to feel very wrong.",
+        "ja": "ルモン社の社員たちは、記憶を「仕事」と「私生活」に分離する手術を受けている。職場の自分は外の人生を何も知らず、外の自分は仕事のことを何も知らない。それを疑ったことのなかったマークだが、新しい同僚がやってきたことで、何かがおかしいと感じはじめる。"
+      },
+      "note": {
+        "en": "The most stylish show on TV. Every frame looks like a painting of an office nightmare.",
+        "ja": "いまテレビでいちばんスタイリッシュなドラマ。どのシーンも「オフィスの悪夢」を描いた絵画みたい。"
+      },
+      "genres": [
+        "science-fiction",
+        "thriller",
+        "mystery",
+        "drama"
+      ],
+      "year": 2022,
+      "countries": [
+        "US"
+      ],
+      "directors": [
+        "dan-erickson"
+      ],
+      "cast": [
+        "adam-scott",
+        "britt-lower",
+        "john-turturro",
+        "patricia-arquette"
+      ],
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=Severance",
+      "featured": true,
+      "added": "2026-09-28"
+    },
+    {
+      "id": "the-bear",
+      "kind": "tv",
+      "title": {
+        "en": "The Bear",
+        "ja": "一流シェフのファミリーレストラン"
+      },
+      "summary": {
+        "en": "Carmy, a young chef from the world of fine dining, comes home to Chicago to run his family's chaotic sandwich shop after a loss. Stressful, loud, funny and full of heart — a show about kitchens, family and learning to say \"yes, chef\".",
+        "ja": "高級レストランの世界で活躍していた若きシェフ・カーミーは、ある喪失をきっかけにシカゴへ戻り、家族が営む混沌としたサンドイッチ店を継ぐことに。騒がしくて、ストレスフルで、笑えて、温かい。厨房と家族、そして「イエス、シェフ」を学ぶ物語。"
+      },
+      "note": {
+        "en": "Episodes are short but intense. Eat something before you watch — you will get hungry.",
+        "ja": "1話は短いけど濃密。お腹がすくので、何か食べてから観てね。"
+      },
+      "genres": [
+        "comedy",
+        "drama"
+      ],
+      "year": 2022,
+      "countries": [
+        "US"
+      ],
+      "directors": [
+        "christopher-storer"
+      ],
+      "cast": [
+        "jeremy-allen-white",
+        "ayo-edebiri",
+        "ebon-moss-bachrach"
+      ],
+      "watch_service": "JustWatch",
+      "watch_url": "https://www.justwatch.com/jp/search?q=The%20Bear",
+      "added": "2026-09-05"
+    },
+    {
+      "id": "blonde",
+      "kind": "album",
+      "title": {
+        "en": "Blonde",
+        "ja": "ブロンド"
+      },
+      "summary": {
+        "en": "A hazy, intimate album that drifts between half-remembered conversations, late-night drives and quiet heartbreak. Minimal drums, lots of space, and some of the most beautiful vocal melodies of the decade.",
+        "ja": "ぼんやりと思い出す会話、深夜のドライブ、静かな失恋のあいだを漂うような、親密なアルバム。ドラムは最小限で余白が多く、この10年でいちばん美しいメロディがいくつも詰まっている。"
+      },
+      "note": {
+        "en": "Listen at night, start to finish, with headphones. \"Self Control\" and \"White Ferrari\" are my favourites.",
+        "ja": "夜に、ヘッドホンで、最初から最後まで通して聴いてみて。お気に入りは「Self Control」と「White Ferrari」。"
+      },
+      "genres": [
+        "r-and-b",
+        "alternative"
+      ],
+      "artists": [
+        "frank-ocean"
+      ],
+      "year": 2016,
+      "countries": [
+        "US"
+      ],
+      "spotify_url": "https://open.spotify.com/search/Frank%20Ocean%20Blonde",
+      "featured": true,
+      "added": "2026-09-25"
+    },
+    {
+      "id": "good-days",
+      "kind": "song",
+      "title": {
+        "en": "Good Days",
+        "ja": "グッド・デイズ"
+      },
+      "summary": {
+        "en": "A dreamy, floating song about trying to let go of the past and stay open to good things. Warm guitars, layered vocals, and a feeling like a slow morning.",
+        "ja": "過去を手放して、良いことに心を開いていようとする気持ちを歌った、夢見るように漂う一曲。あたたかいギターと重なり合う歌声が、ゆっくりした朝のような気分にしてくれる。"
+      },
+      "note": {
+        "en": "My go-to song for a rainy Sunday.",
+        "ja": "雨の日曜日に聴きたくなる定番曲。"
+      },
+      "album": {
+        "en": "SOS",
+        "ja": "SOS"
+      },
+      "genres": [
+        "r-and-b",
+        "pop"
+      ],
+      "artists": [
+        "sza"
+      ],
+      "year": 2020,
+      "countries": [
+        "US"
+      ],
+      "spotify_url": "https://open.spotify.com/search/SZA%20Good%20Days",
+      "video_url": "https://www.youtube.com/results?search_query=SZA%20Good%20Days%20official%20video",
+      "featured": true,
+      "added": "2026-09-18"
+    },
+    {
+      "id": "in-rainbows",
+      "kind": "album",
+      "title": {
+        "en": "In Rainbows",
+        "ja": "イン・レインボウズ"
+      },
+      "summary": {
+        "en": "Radiohead at their warmest: intricate rhythms, shimmering guitars and surprisingly romantic songs. Ten tracks that flow together perfectly.",
+        "ja": "いちばん温かいレディオヘッド。複雑なリズム、きらめくギター、そして意外なほどロマンチックな歌。10曲が完璧につながっていく。"
+      },
+      "note": {
+        "en": "\"Weird Fishes/Arpeggi\" is the one.",
+        "ja": "「Weird Fishes/Arpeggi」がとにかく最高。"
+      },
+      "genres": [
+        "alternative",
+        "indie-rock"
+      ],
+      "artists": [
+        "radiohead"
+      ],
+      "year": 2007,
+      "countries": [
+        "GB"
+      ],
+      "spotify_url": "https://open.spotify.com/search/Radiohead%20In%20Rainbows",
+      "added": "2026-08-22"
+    },
+    {
+      "id": "motion-sickness",
+      "kind": "song",
+      "title": {
+        "en": "Motion Sickness",
+        "ja": "モーション・シックネス"
+      },
+      "summary": {
+        "en": "A breezy, catchy guitar song with a bitterly funny lyric about someone she would rather forget. Easy to sing along to, hard to get out of your head.",
+        "ja": "軽やかでキャッチーなギターに乗せて、忘れたい誰かのことを皮肉たっぷりに歌う一曲。一緒に口ずさみやすく、頭から離れない。"
+      },
+      "album": {
+        "en": "Stranger in the Alps",
+        "ja": "Stranger in the Alps"
+      },
+      "genres": [
+        "indie-rock"
+      ],
+      "artists": [
+        "phoebe-bridgers"
+      ],
+      "year": 2017,
+      "countries": [
+        "US"
+      ],
+      "spotify_url": "https://open.spotify.com/search/Phoebe%20Bridgers%20Motion%20Sickness",
+      "video_url": "https://www.youtube.com/results?search_query=Phoebe%20Bridgers%20Motion%20Sickness%20official%20video",
+      "added": "2026-09-02"
+    },
+    {
+      "id": "punisher",
+      "kind": "album",
+      "title": {
+        "en": "Punisher",
+        "ja": "パニッシャー"
+      },
+      "summary": {
+        "en": "Soft, funny and devastating songs about insomnia, road trips and the end of the world, sung almost in a whisper. It starts gentle and builds to one of the great album closers.",
+        "ja": "不眠症、ロードトリップ、そして世界の終わりについての、やわらかくて、ユーモラスで、胸をえぐる歌たち。ささやくような歌声で静かに始まり、最後の曲で壮大に締めくくられる。"
+      },
+      "note": {
+        "en": "If you like the song \"Motion Sickness\" below, this whole album is for you.",
+        "ja": "下の「Motion Sickness」が気に入ったら、このアルバムはまるごとあなた向け。"
+      },
+      "genres": [
+        "indie-rock",
+        "folk"
+      ],
+      "artists": [
+        "phoebe-bridgers"
+      ],
+      "year": 2020,
+      "countries": [
+        "US"
+      ],
+      "spotify_url": "https://open.spotify.com/search/Phoebe%20Bridgers%20Punisher",
+      "added": "2026-09-10"
+    },
+    {
+      "id": "death-stranding",
+      "kind": "game",
+      "title": {
+        "en": "Death Stranding",
+        "ja": "DEATH STRANDING"
+      },
+      "summary": {
+        "en": "Years after a catastrophe tore the world apart, a porter named Sam Bridges sets out on foot across a ruined America, carrying cargo between isolated cities and reconnecting them one delivery at a time. Strange, slow, and unlike anything else.",
+        "ja": "世界を引き裂いた大災害から数年。配達人サム・ブリッジスは、荒廃したアメリカを徒歩で横断し、孤立した都市へ荷物を届けながら、人と人とを再びつないでいく。奇妙で、ゆっくりで、ほかに似たもののないゲーム。"
+      },
+      "note": {
+        "en": "A walking game that quietly becomes a story about loneliness and connection. Give it a few hours to click.",
+        "ja": "歩くゲームが、いつのまにか孤独とつながりの物語になっていく。ハマるまで数時間かかるけど、待つ価値あり。"
+      },
+      "genres": [
+        "action",
+        "adventure",
+        "exploration"
+      ],
+      "release_us": "2019-11-08",
+      "release_jp": "2019-11-08",
+      "platforms": [
+        "ps4",
+        "ps5",
+        "pc"
+      ],
+      "developers": [
+        "kojima-productions"
+      ],
+      "publishers": [
+        "sony-interactive-entertainment",
+        "505-games"
+      ],
+      "creators": [
+        "hideo-kojima",
+        "yoji-shinkawa"
+      ],
+      "featured": true,
+      "added": "2026-10-03"
+    },
+    {
+      "id": "metal-gear-solid-3-snake-eater",
+      "kind": "game",
+      "title": {
+        "en": "Metal Gear Solid 3: Snake Eater",
+        "ja": "メタルギア ソリッド3 スネークイーター"
+      },
+      "summary": {
+        "en": "1964, deep in a Soviet jungle: a lone operative codenamed Naked Snake must rescue a defecting scientist and stop a weapon that could tip the Cold War. Sneak, camouflage yourself, and survive on whatever you can find.",
+        "ja": "1964年、ソ連のジャングルの奥深く。コードネーム「ネイキッド・スネーク」の単独工作員は、亡命を望む科学者を救い出し、冷戦の均衡を崩しかねない兵器を阻止しなければならない。身を隠し、迷彩をまとい、現地で手に入るもので生き延びる。"
+      },
+      "note": {
+        "en": "Kojima's masterpiece — and a great place to start with Metal Gear, even though it's the third one.",
+        "ja": "小島監督の最高傑作。シリーズ3作目だけど、メタルギアの入り口としても最適。"
+      },
+      "genres": [
+        "action",
+        "stealth"
+      ],
+      "release_us": "2004-11-17",
+      "release_jp": "2004-12-16",
+      "platforms": [
+        "ps2",
+        "ps3",
+        "ps-vita",
+        "3ds",
+        "ps4",
+        "ps5",
+        "switch",
+        "xbox-series",
+        "pc"
+      ],
+      "developers": [
+        "konami"
+      ],
+      "publishers": [
+        "konami"
+      ],
+      "creators": [
+        "hideo-kojima",
+        "yoji-shinkawa"
+      ],
+      "added": "2026-09-27"
+    },
+    {
+      "id": "outer-wilds",
+      "kind": "game",
+      "title": {
+        "en": "Outer Wilds",
+        "ja": "アウターワイルズ"
+      },
+      "summary": {
+        "en": "You're the newest astronaut of a tiny, rickety space program, setting out to explore a hand-crafted solar system full of mysteries. The less you know going in, the better — curiosity is the only tool that matters.",
+        "ja": "小さくておんぼろな宇宙計画の新米宇宙飛行士として、謎に満ちた手作りの太陽系へ旅立つ。予備知識は少なければ少ないほどいい。必要な道具は好奇心だけ。"
+      },
+      "note": {
+        "en": "Please don't look anything up about this one. It's best completely fresh.",
+        "ja": "これだけは本当に何も調べないで。まっさらな状態で遊ぶのがいちばん。"
+      },
+      "genres": [
+        "exploration",
+        "puzzle",
+        "indie"
+      ],
+      "release_us": "2019-05-28",
+      "platforms": [
+        "pc",
+        "xbox-one",
+        "ps4",
+        "ps5",
+        "xbox-series",
+        "switch"
+      ],
+      "developers": [
+        "mobius-digital"
+      ],
+      "publishers": [
+        "annapurna-interactive"
+      ],
+      "added": "2026-09-15"
+    }
+  ]
+}

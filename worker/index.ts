@@ -1,0 +1,198 @@
+import { Hono } from 'hono';
+import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile } from '../src/shared/ingest';
+import { ENTITY_TYPES, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type SiteSettings } from '../src/shared/schema';
+import { normalize, referencesOf } from '../src/shared/validate';
+import { requireAdmin } from './auth';
+import { getEntity, getSettings, loadAll, putSetting, upsert } from './db';
+import type { AppEnv } from './env';
+
+const app = new Hono<AppEnv>().basePath('/api');
+
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: 'Something went wrong on the server.' }, 500);
+});
+
+// ───────────────────────────── Public ─────────────────────────────
+
+/** Everything the public site needs, minus any medium that's switched off. */
+app.get('/catalog', async (c) => {
+  const [all, settings] = await Promise.all([loadAll(c.env.DB), getSettings(c.env.DB)]);
+  const items = [...all.item.values()].filter((i) => settings.media[(i as ItemDoc).medium]) as ItemDoc[];
+  const used = new Set(items.flatMap((i) => referencesOf('item', i).map((r) => r.key)));
+  const pick = (type: EntityType) => [...all[type].values()].filter((d) => used.has(`${type}:${d.id}`));
+  // Always fresh, so admin edits and section switches show up immediately.
+  c.header('Cache-Control', 'no-cache');
+  return c.json({
+    settings,
+    items,
+    people: pick('person'),
+    companies: pick('company'),
+    genres: [...all.genre.values()].filter((g) => settings.media[(g as { medium: Medium }).medium]),
+  });
+});
+
+// ───────────────────────────── Admin ─────────────────────────────
+
+const admin = new Hono<AppEnv>();
+admin.use('*', requireAdmin);
+
+admin.get('/me', (c) => c.json({ email: c.get('adminEmail') }));
+
+/** Everything, including hidden media — the admin sees it all. */
+admin.get('/all', async (c) => {
+  const [all, settings] = await Promise.all([loadAll(c.env.DB), getSettings(c.env.DB)]);
+  return c.json({
+    settings,
+    items: [...all.item.values()],
+    people: [...all.person.values()],
+    companies: [...all.company.values()],
+    genres: [...all.genre.values()],
+  });
+});
+
+const isType = (t: string): t is EntityType => (ENTITY_TYPES as string[]).includes(t);
+
+function referencedBy(all: Awaited<ReturnType<typeof loadAll>>, type: EntityType, id: string) {
+  if (type === 'item') return [];
+  const key = `${type}:${id}`;
+  return [...all.item.values()]
+    .filter((i) => referencesOf('item', i).some((r) => r.key === key))
+    .map((i) => ({ id: i.id, title: (i as ItemDoc).title, kind: (i as ItemDoc).kind }));
+}
+
+admin.get('/entities/:type/:id', async (c) => {
+  const { type, id } = c.req.param();
+  if (!isType(type)) return c.notFound();
+  const all = await loadAll(c.env.DB);
+  const doc = all[type].get(id);
+  if (!doc) return c.json({ error: 'Not found.' }, 404);
+  return c.json({ doc, referencedBy: referencedBy(all, type, id) });
+});
+
+async function validateForSave(db: D1Database, type: EntityType, body: unknown) {
+  const { doc, errors, warnings } = normalize(type, body);
+  if (!doc) return { errors, warnings };
+  if (type === 'item') {
+    const all = await loadAll(db);
+    for (const r of referencesOf('item', doc)) {
+      const [t, ...rest] = r.key.split(':');
+      if (!all[t as EntityType].has(rest.join(':'))) errors.push(`${r.field} → "${r.id}" doesn't exist yet — create it first`);
+    }
+  }
+  return { doc: errors.length ? undefined : doc, errors, warnings };
+}
+
+admin.post('/entities/:type', async (c) => {
+  const { type } = c.req.param();
+  if (!isType(type)) return c.notFound();
+  const { doc, errors, warnings } = await validateForSave(c.env.DB, type, await c.req.json());
+  if (!doc) return c.json({ errors, warnings }, 400);
+  if (await getEntity(c.env.DB, type, doc.id)) return c.json({ errors: [`"${doc.id}" already exists — pick a different id.`], warnings }, 409);
+  const toSave = type === 'item' ? { ...(doc as ItemDoc), added: (doc as ItemDoc).added ?? new Date().toISOString().slice(0, 10) } : doc;
+  await upsert(c.env.DB, type, toSave).run();
+  return c.json({ doc: toSave, warnings }, 201);
+});
+
+admin.put('/entities/:type/:id', async (c) => {
+  const { type, id } = c.req.param();
+  if (!isType(type)) return c.notFound();
+  const current = await getEntity(c.env.DB, type, id);
+  if (!current) return c.json({ errors: ['This record no longer exists.'] }, 404);
+  const body = (await c.req.json()) as Record<string, unknown>;
+  if (type !== 'genre') body.id = id; // ids are permanent once created
+  const { doc, errors, warnings } = await validateForSave(c.env.DB, type, body);
+  if (!doc) return c.json({ errors, warnings }, 400);
+  if (doc.id !== id) return c.json({ errors: ["A genre's section and slug can't change. Create a new genre instead."], warnings }, 400);
+  const toSave: AnyDoc = type === 'item' ? { ...(doc as ItemDoc), added: (doc as ItemDoc).added ?? (current as ItemDoc).added } : doc;
+  await upsert(c.env.DB, type, toSave).run();
+  return c.json({ doc: toSave, warnings });
+});
+
+admin.delete('/entities/:type/:id', async (c) => {
+  const { type, id } = c.req.param();
+  if (!isType(type)) return c.notFound();
+  const all = await loadAll(c.env.DB);
+  const refs = referencedBy(all, type, id);
+  if (refs.length) {
+    return c.json({ error: `Still used by ${refs.length} item(s). Remove it from them first.`, referencedBy: refs }, 409);
+  }
+  await c.env.DB.prepare('DELETE FROM entities WHERE type = ? AND id = ?').bind(type, id).run();
+  return c.json({ ok: true });
+});
+
+admin.put('/settings', async (c) => {
+  const body = (await c.req.json()) as Partial<SiteSettings>;
+  const current = await getSettings(c.env.DB);
+  const stmts = [];
+  if (body.media) {
+    const media = { ...current.media };
+    for (const m of MEDIA) if (typeof body.media[m] === 'boolean') media[m] = body.media[m];
+    stmts.push(putSetting(c.env.DB, 'media', media));
+  }
+  if (body.text) {
+    const text = { ...current.text };
+    for (const k of Object.keys(text) as (keyof SiteSettings['text'])[]) {
+      const v = body.text[k] as I18n | undefined;
+      if (v?.en) text[k] = { en: String(v.en).trim(), ...(v.ja ? { ja: String(v.ja).trim() } : {}) };
+    }
+    stmts.push(putSetting(c.env.DB, 'text', text));
+  }
+  if (stmts.length) await c.env.DB.batch(stmts);
+  return c.json(await getSettings(c.env.DB));
+});
+
+// ── Batch ingest ──
+
+admin.post('/ingest/preview', async (c) => {
+  const { file, decisions } = (await c.req.json()) as { file: IngestFile; decisions?: Record<string, Decision> };
+  return c.json(analyze(file, await loadAll(c.env.DB), decisions ?? {}));
+});
+
+admin.post('/ingest/apply', async (c) => {
+  const { file, decisions, filename } = (await c.req.json()) as { file: IngestFile; decisions?: Record<string, Decision>; filename?: string };
+  const plan = analyze(file, await loadAll(c.env.DB), decisions ?? {});
+  if (plan.fileErrors.length) return c.json({ error: plan.fileErrors.join(' ') }, 400);
+  if (plan.undecided) return c.json({ error: `${plan.undecided} changed record(s) still need a decision.` }, 400);
+
+  const summary = summarize(plan, filename);
+  const writes = writesFor(plan);
+  // One batch = one transaction: either everything is saved or nothing is.
+  const results = await c.env.DB.batch([
+    ...writes.map((w) => upsert(c.env.DB, w.type, w.doc)),
+    c.env.DB.prepare('INSERT INTO ingests (filename, summary) VALUES (?, ?) RETURNING id').bind(filename ?? null, JSON.stringify(summary)),
+  ]);
+  const ingestId = (results.at(-1)!.results[0] as { id: number }).id;
+  return c.json({ ingestId, summary });
+});
+
+admin.get('/ingests', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT id, created_at, filename, summary FROM ingests ORDER BY id DESC LIMIT 50').all<{ id: number; created_at: string; filename: string | null; summary: string }>();
+  return c.json(results.map((r) => ({ id: r.id, created_at: r.created_at, filename: r.filename, counts: JSON.parse(r.summary).counts })));
+});
+
+admin.get('/ingests/:id', async (c) => {
+  const row = await c.env.DB.prepare('SELECT id, created_at, filename, summary FROM ingests WHERE id = ?').bind(Number(c.req.param('id'))).first<{ id: number; created_at: string; filename: string | null; summary: string }>();
+  if (!row) return c.json({ error: 'Not found.' }, 404);
+  return c.json({ ...row, summary: JSON.parse(row.summary) });
+});
+
+/** Download everything in the same format the ingest accepts (a backup, and a template). */
+admin.get('/export', async (c) => {
+  const all = await loadAll(c.env.DB);
+  const file: Record<string, unknown> = { version: 1 };
+  for (const type of ENTITY_TYPES) {
+    file[SECTION[type]] = [...all[type].values()].map((d) => {
+      if (type === 'item') { const { medium: _m, ...rest } = d as ItemDoc; return rest; }
+      if (type === 'genre') { const { id: _id, ...rest } = d as AnyDoc & { id: string }; return rest; }
+      return d;
+    });
+  }
+  c.header('Content-Disposition', `attachment; filename="fyc-export-${new Date().toISOString().slice(0, 10)}.json"`);
+  return c.json(file);
+});
+
+app.route('/admin', admin);
+app.all('*', (c) => c.json({ error: 'Not found.' }, 404));
+
+export default app satisfies ExportedHandler<AppEnv['Bindings']>;

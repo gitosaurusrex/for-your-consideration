@@ -1,92 +1,129 @@
 # For Your Consideration
 
-A small, hand-curated recommendations site for films, TV and music, written for a friend in **English and 日本語**.
+A hand-curated recommendations site for **films, TV, music and games**, written for a friend in **English and 日本語**.
 
-- Official artwork, spoiler-free summaries, a personal "why I picked it" note
-- Directors, top-billed cast, artists, release year and release country on every entry
-- **Everything is linked.** Click a genre, person or country to see everything else connected to it. Every detail page also has a "More like this" shelf, scored by shared people and genres.
-- A "Watch" button for films and shows, plus **Spotify** and **Music video** buttons for music
-- An EN / 日本語 switch. The first visit picks the language from the browser, and `?lang=ja` forces Japanese, which is handy for the link you send.
-- A single-page app with animated transitions: posters fly from the card into the detail page, pages cross-fade, the language switch dissolves, and filters reflow. Uses the View Transitions API and degrades gracefully on older browsers. Respects "reduce motion".
-- No database and no server. Content is JSON in [`/content`](content), edited through a friendly admin UI at **`/admin`**.
+- Official artwork, spoiler-free summaries, a personal "why I picked it" note, and the date each item was added
+- **Film & TV**:
+  - director/creator and top-billed cast, year and release countries
+  - a **Watch** button
+  - **free / limited-time availability** badges that hide themselves after the end date
+- **Music**: artists, album, **Spotify** and **Music video** buttons
+- **Games**:
+  - US and Japan release dates, platforms
+  - developer and publisher (each with their own studio page)
+  - notable creators (e.g. Hideo Kojima)
+- **Everything links up.**
+  - Every person, studio, genre and country has a page.
+  - Person pages show a headshot, a bio, and everything they directed, starred in, recorded or created.
+  - "More like this" on every item.
+- **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
+- **EN / 日本語 switch.** Defaults to the browser language. `?lang=ja` forces Japanese.
+- Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
+- **Admin at `/admin`**, behind a Cloudflare Access login:
+  - batch JSON ingest with a preview and conflict review
+  - edit or delete any record
+  - switch whole sections (e.g. Games) on or off
+  - export everything
 
-## Quick start
+## How it's built
+
+```
+Browser ── GET /api/catalog ──┐
+                              ▼
+   Cloudflare Worker (worker/)  ──  D1 database (SQLite)
+                              ▲
+/admin ── Cloudflare Access login ── /api/admin/*  (JWT verified again in the Worker)
+```
+
+- **Frontend:** React + Vite (`src/`). The admin is a separate lazy-loaded bundle (`src/admin/`), so visitors never download it.
+- **Backend:** one Cloudflare Worker using [Hono](https://hono.dev) (`worker/`). It serves the static site and the API.
+- **Database:** Cloudflare D1. Every record is a JSON document (`migrations/`).
+- **Shared rules:** `src/shared/` holds the field definitions, validation and ingest/diff logic. Both the Worker and the admin forms use it, so there's one source of truth.
+- **Login:** Cloudflare Access (Zero Trust, free for small teams) shows an email-code login in front of `/admin`. There's no login code in the app. The Worker still verifies Access's signed token on every admin API call.
+
+Everything runs on Cloudflare's free tier.
+
+## Run it locally
+
+Requires Node 22.9+.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173  (admin at http://localhost:5173/admin/)
-npm run build      # checks content, type-checks, builds to /dist
+cp .dev.vars.example .dev.vars   # lets you use /admin on localhost without logging in
+npm run db:migrate               # creates the local database (in .wrangler/)
+npm run dev                      # http://localhost:5173  ·  admin: http://localhost:5173/admin
+npm run db:seed                  # in a second terminal: loads seed/example-catalog.json
+npm test                         # validation, ingest and login tests
 ```
 
-Requires Node 22.9 or newer.
+## Deploy (one-time setup, about 15 minutes)
 
-## Managing content (the "backend")
+### 1. Create the database and deploy
 
-The admin panel is [Sveltia CMS](https://sveltiacms.app), a Git-based CMS. Every save is a commit to this repo, and your host rebuilds the site automatically. Each entry shows English and Japanese **side by side**. Fields that don't need translating (year, links, cast, and so on) are entered once and copied to both languages.
+```bash
+npx wrangler login
+npx wrangler d1 create fyc
+```
 
-| Collection | What it holds |
-|---|---|
-| **Films & TV** | title, type, year, countries, poster/backdrop, summary, note, directors (or creators for TV), cast, genres, runtime, watch link, trailer |
-| **Music** | title, song or album, artists, album name, year, countries, cover, summary, note, genres, Spotify link, music video link |
-| **People** | name in English and Japanese (katakana), optional photo. Linking one person from several entries connects them on the site. |
-| **Genres** | name in both languages, plus a colour hue for its tag |
-| **Site text** | the home-page greeting, intro and sign-off |
+Paste the printed `database_id` into [`wrangler.jsonc`](wrangler.jsonc), then deploy:
 
-### Signing in to `/admin`
+```bash
+npm run deploy     # builds, applies database migrations, deploys
+```
 
-- **Locally, easiest:** run `npm run dev`, open `http://localhost:5173/admin/` in Chrome or Edge, choose **Work with Local Repository**, and pick this folder. Edits are written straight to the files. Commit and push when you're done.
-- **On the live site:** choose **Sign In Using Access Token** and paste a GitHub [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) that has *Contents: Read and write* on this repo only. Saves then commit straight to `main`.
-  For a proper "Sign in with GitHub" button, deploy Sveltia's free [`sveltia-cms-auth`](https://github.com/sveltia/sveltia-cms-auth) worker to Cloudflare and add its URL as `base_url` under `backend` in [`public/admin/config.yml`](public/admin/config.yml).
+Wrangler prints your site's URL (`https://for-your-consideration.<you>.workers.dev`). You can add a custom domain later under **Workers & Pages → your Worker → Settings → Domains & Routes**.
 
-### Artwork
+To deploy automatically on every push, connect the repo under **Workers & Pages → your Worker → Settings → Build**:
+- Build command: `npm run build`
+- Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 
-Paste any image URL into the Poster or Cover field, or upload a file (uploads go to `public/uploads`). To pull **official art automatically**:
+### 2. Protect the admin with Cloudflare Access (no code)
 
-1. Get a free TMDB API key (themoviedb.org → Settings → API) and put it in `.env` (copy `.env.example`).
-2. For music, set the entry's **Spotify link** to a real track or album link (Share → Copy link).
-3. Run `npm run fetch-art`. It fills every empty poster, backdrop and cover, and adds actor and director photos. Nothing you've already set is overwritten, unless you pass `-- --force`.
+1. Open the Cloudflare dashboard → **Zero Trust**. The first time, pick a team name and the **Free** plan.
+2. **Access → Applications → Add an application → Self-hosted.**
+   - **Domain:** your site's hostname, path `admin`.
+   - Add a second destination: the same hostname, path `api/admin`.
+   - **Policy:** Action *Allow*. Include → *Emails* → your email address.
+   - Login method: the default **One-time PIN** (a code is emailed to you) is all you need.
+3. Open the application's **Overview** and copy the **Application Audience (AUD) Tag**. Your **team domain** is in **Settings → Custom Pages** (looks like `yourteam.cloudflareaccess.com`).
+4. Put both into `wrangler.jsonc` under `vars` (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`) and run `npm run deploy` again.
 
-Until an entry has art, the site draws a colourful generated poster for it, so nothing ever looks broken.
+Until step 4 is done, the admin API refuses every request. If your site is also reachable on its `workers.dev` address, protect that hostname in Access too, or turn the `workers.dev` route off in the Worker's settings. The API stays locked either way, because the Worker checks the Access token itself.
 
-### Safety net
+### 3. Add the content
 
-`npm run build` first runs `scripts/check-content.mjs`. If an entry points to a person or genre that doesn't exist, has a malformed URL or country code, or is missing a required field, the build **fails with a readable message** and the live site keeps its previous version. A missing Japanese translation is only a warning; the site falls back to English.
+Open `https://your-site/admin`, sign in with the emailed code, go to **Batch ingest**, and upload [`seed/example-catalog.json`](seed/example-catalog.json). The admin can also download it for you. Then flip **Games** off on the Dashboard until your list is ready.
 
-> **The seed content is an example.** Swap the watch links (currently JustWatch searches), Spotify links (currently Spotify searches) and music-video links (currently YouTube searches) for the real ones.
+## Managing content
 
-## Deploying: which host?
+- **Batch ingest** (for adding many things at once):
+  - Upload a JSON file. The preview shows what's new, unchanged and broken, plus a field-by-field diff for records that already exist.
+  - For each existing record, choose **Replace / Fill blanks / Skip** (or apply one choice to all).
+  - Nothing is saved until **Apply**. The summary page then shows the new items as they'll appear on the site.
+  - Every batch is kept in "Recent ingests" so you can revisit it.
+  - **The file format is documented in [`docs/ingest-format.md`](docs/ingest-format.md).** Paste that page into Claude to generate files.
+- **Official artwork:** `npm run fetch-art -- my-batch.json` fills posters, backdrops and headshots (TMDB), game covers (IGDB) and album covers (Spotify) into the file before you upload it. Keys go in `.env` (see `.env.example`).
+- **One-off edits:** Admin → Items / People / Studios / Genres.
+  - The edit forms show English and Japanese side by side.
+  - Pick people, studios and genres by name, or create them inline.
+  - Delete anything. People, studios and genres that items still use are protected.
+  - "Only ones needing attention" lists records missing Japanese, art, links, photos or bios.
+- **Sections on/off:** the Dashboard switches hide Film & TV, Music or Games from the public site without deleting anything.
+- **Backups:** Dashboard → **Export everything** downloads the whole database in the ingest format. D1 also has point-in-time restore ("Time Travel": 7 days on the free plan, 30 on paid) via `npx wrangler d1 time-travel`.
 
-The site is fully static: HTML, JS and images, with no server and no database. You don't need a "backend" host or PHP hosting. Any static host's free tier is more than enough. Comparison (free tiers change, so double-check the current terms before you sign up):
-
-| Host | Verdict | Why |
-|---|---|---|
-| **Cloudflare (Workers/Pages)** | ⭐ **Recommended** | Free static hosting with no bandwidth cap. Its global CDN includes Tokyo and Osaka, so it's fast for your friend in Japan. Auto-deploys from GitHub. Config: [`wrangler.jsonc`](wrangler.jsonc). |
-| **Vercel (Hobby)** | Great alternative | Very easy GitHub import with generous limits. The Hobby plan is for personal, non-commercial use, which this is. Config: [`vercel.json`](vercel.json). |
-| **Netlify (Free)** | Good | Easy setup. The free plan is now usage-credit based, so very frequent deploys can eat into it. Config: [`netlify.toml`](netlify.toml). |
-| **Render (Static Site)** | Fine | Free static sites don't "sleep". Only Render's free *web services* do, and this site doesn't need one. Config: [`render.yaml`](render.yaml). |
-| **GitHub Pages** | Possible, with caveats | Free, but needs extra workarounds for single-page-app routes and repo-name base paths. |
-| **Hostinger** | Not needed | No free plan. It's paid shared hosting built for PHP/WordPress, which is more than a static site needs. |
-
-### Deploying to Cloudflare (about 5 minutes)
-
-1. Push this repo to GitHub (the site deploys from `main`).
-2. Cloudflare dashboard → **Workers & Pages → Create → Import a repository** → pick this repo.
-3. Build command `npm run build`. Deploy command `npx wrangler deploy` (it reads `wrangler.jsonc`).
-4. Done. Every push, including every save in `/admin`, rebuilds the site. Optionally set `site_url` in `public/admin/config.yml` to the live URL.
-
-For the **Pages** flow instead, use build command `npm run build` and output directory `dist`. Pages automatically serves single-page apps.
+> The example content's watch/Spotify/YouTube links are searches, Paddington 2's "free, limited time" badge is a demo, and *Outer Wilds* has no Japan release date set. Replace them with real details. Have the Japanese proofread.
 
 ## Project layout
 
 ```
-content/            ← all recommendations (JSON, one file per entry, { en, ja })
-  titles/ music/ people/ genres/ site.json
-public/admin/       ← CMS (index.html + config.yml)
-public/uploads/     ← images uploaded through the CMS
-scripts/            ← check-content (build guard), fetch-art (TMDB/Spotify)
-src/
-  data.ts           ← loads content, builds the links (genres ↔ people ↔ titles), "more like this"
-  i18n.tsx          ← EN/JA UI strings, language switch, country names
-  transitions.ts    ← shared-element poster morph
-  pages/ components/ styles.css
+worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export; Access JWT check
+migrations/      D1 schema
+src/shared/      field definitions, validation, ingest diff/merge (used by Worker + admin)
+src/admin/       admin UI (lazy-loaded)
+src/pages/       public pages: home, browse, detail, person, studio, genre, country, search
+src/components/  cards, chips, availability badge, layout
+seed/            example ingest file (everything on the site at launch)
+docs/            ingest file format
+scripts/         fetch-art (TMDB / IGDB / Spotify), seed-local
+tests/           vitest: validation, ingest, auth
 ```

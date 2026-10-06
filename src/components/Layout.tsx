@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
+import { enabledMedia } from '../data';
 import { useLang } from '../i18n';
 import { LANGS, type Lang } from '../types';
 import { VLink, VNavLink } from './VLink';
@@ -38,11 +39,12 @@ function LangToggle() {
 function Nav() {
   const { t } = useLang();
   const { pathname } = useLocation();
-  const links = [
-    { to: '/', label: t.navHome, match: (p: string) => p === '/' },
-    { to: '/watch', label: t.navWatch, match: (p: string) => p.startsWith('/watch') || p.startsWith('/title') },
-    { to: '/listen', label: t.navListen, match: (p: string) => p.startsWith('/listen') || p.startsWith('/music') },
-  ];
+  const sections = {
+    watch: { to: '/watch', label: t.navWatch, match: (p: string) => /^\/(watch|title|genre\/watch)/.test(p) },
+    listen: { to: '/listen', label: t.navListen, match: (p: string) => /^\/(listen|music|genre\/listen)/.test(p) },
+    play: { to: '/play', label: t.navPlay, match: (p: string) => /^\/(play|game|studio|genre\/play)/.test(p) },
+  };
+  const links = [{ to: '/', label: t.navHome, match: (p: string) => p === '/' }, ...enabledMedia.map((m) => sections[m])];
   return (
     <nav className="nav" aria-label="Main">
       {links.map((l) => {
@@ -81,6 +83,9 @@ export function Layout() {
           </span>
         </VLink>
         <Nav />
+        <VNavLink to="/search" className="search-link" aria-label={t.advancedSearch} title={t.advancedSearch}>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="m20 20-4-4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+        </VNavLink>
         <LangToggle />
       </header>
       <main id="main" className="main" key={pathname}>
@@ -90,6 +95,7 @@ export function Layout() {
         <span>{t.siteName}</span>
         <span aria-hidden>✦</span>
         <span lang="ja">あなたへのおすすめ</span>
+        <small className="site-footer__credit">Some artwork via TMDB and IGDB. This site uses the TMDB API but is not endorsed or certified by TMDB.</small>
       </footer>
       <ScrollRestoration />
     </>

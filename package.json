@@ -1,28 +1,38 @@
 {
   "name": "for-your-consideration",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check:content && tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc --noEmit -p worker && vite build",
     "preview": "vite preview",
-    "check:content": "node scripts/check-content.mjs",
+    "test": "vitest run",
+    "db:migrate": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:seed": "node scripts/seed-local.mjs",
+    "deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy",
     "fetch-art": "node --env-file-if-exists=.env scripts/fetch-art.mjs"
   },
   "dependencies": {
+    "hono": "^4.13.13",
+    "jose": "^6.2.12",
     "motion": "^14.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.62.5",
+    "@cloudflare/workers-types": "^5.20261006.1",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^7.0.2",
-    "vite": "^8.3.2"
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3",
+    "wrangler": "^4.147.0"
   },
   "engines": {
     "node": ">=22.9"
