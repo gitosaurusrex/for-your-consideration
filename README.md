@@ -90,6 +90,8 @@ Wrangler prints your site's address, `https://the-stacks.<your-subdomain>.worker
 - Build command: `npm run build`
 - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 
+Connecting the repo doesn't start a build by itself: the first one runs on the next push to `main`. Builds and their logs show under **Workers & Pages → the-stacks → Deployments**.
+
 If a build fails on the migrations step with a permissions error, set the deploy command to `npx wrangler deploy` and run `npm run db:migrate:remote` from your computer whenever a new file appears in `migrations/`.
 
 #### Using R2 instead of KV
