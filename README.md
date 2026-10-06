@@ -17,7 +17,7 @@ A hand-curated library of **films, TV, music and games** for everyone who visits
   - Person pages show a headshot, a bio, and everything they directed, starred in, recorded or created.
   - "More like this" on every item.
 - **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
-- **Four languages: English, 日本語, ไทย and Español.** The globe menu in the header switches between them. The site defaults to Japanese and remembers a visitor's own choice; `?lang=en` (or `ja`, `th`, `es`) in the address forces one. Content that hasn't been translated yet shows in English.
+- **Four languages: English, 日本語, ไทย and Español.** The globe menu in the header switches between them. The site defaults to English and remembers a visitor's own choice; `?lang=en` (or `ja`, `th`, `es`) in the address forces one. Content that hasn't been translated yet shows in English.
 - **Follows the time of day.** The colors and the home page greeting change with the visitor's clock: morning (5–11), afternoon (11–17), evening (17–21) and night (21–5). Morning and afternoon use light palettes, evening and night dark ones.
 - Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
 - **Admin at `/admin`**, behind a password login:
