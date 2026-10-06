@@ -3,7 +3,7 @@ import type { Bindings } from './env';
 
 /** One possible piece of artwork; `fields` is what gets filled in if it's chosen. */
 export interface ArtCandidate {
-  source: 'TMDB' | 'IGDB' | 'Spotify';
+  source: 'TMDB' | 'Wikipedia' | 'Spotify';
   label: string;
   detail?: string;
   preview: string;
@@ -15,7 +15,7 @@ export class ArtError extends Error {}
 const TMDB_IMG = 'https://image.tmdb.org/t/p';
 
 export function artStatus(env: Bindings) {
-  return { tmdb: !!env.TMDB_API_KEY, igdb: !!(env.TWITCH_CLIENT_ID && env.TWITCH_CLIENT_SECRET), spotify: true };
+  return { tmdb: !!env.TMDB_API_KEY, wikipedia: true, spotify: true };
 }
 
 async function tmdb(env: Bindings, path: string, params: Record<string, string | number | undefined> = {}) {
@@ -28,20 +28,6 @@ async function tmdb(env: Bindings, path: string, params: Record<string, string |
   const res = await fetch(url, { headers });
   if (!res.ok) throw new ArtError(`TMDB answered ${res.status}${res.status === 401 ? ' — check the TMDB_API_KEY secret' : ''}.`);
   return res.json() as Promise<Record<string, any>>;
-}
-
-let igdbToken: { token: string; expires: number } | null = null;
-async function igdb(env: Bindings, body: string) {
-  if (!env.TWITCH_CLIENT_ID || !env.TWITCH_CLIENT_SECRET) throw new ArtError('IGDB isn\'t set up yet — add the TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET secrets (see README → Artwork).');
-  if (!igdbToken || igdbToken.expires < Date.now()) {
-    const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${env.TWITCH_CLIENT_ID}&client_secret=${env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' });
-    const j = (await r.json()) as { access_token?: string; expires_in?: number };
-    if (!j.access_token) throw new ArtError('Couldn\'t sign in to IGDB — check the Twitch client id and secret.');
-    igdbToken = { token: j.access_token, expires: Date.now() + ((j.expires_in ?? 3600) - 300) * 1000 };
-  }
-  const res = await fetch('https://api.igdb.com/v4/games', { method: 'POST', headers: { 'Client-ID': env.TWITCH_CLIENT_ID, Authorization: `Bearer ${igdbToken.token}` }, body });
-  if (!res.ok) throw new ArtError(`IGDB answered ${res.status}.`);
-  return res.json() as Promise<Record<string, any>[]>;
 }
 
 const year = (d?: string) => (d ? d.slice(0, 4) : '');
@@ -80,19 +66,64 @@ async function filmOrTv(env: Bindings, item: ItemDoc): Promise<ArtCandidate[]> {
   return (results as Record<string, any>[]).map((r) => toCandidate(r)).filter((c): c is ArtCandidate => !!c).slice(0, 12);
 }
 
-async function game(env: Bindings, item: ItemDoc): Promise<ArtCandidate[]> {
-  const fields = 'fields name,cover.image_id,first_release_date,platforms.abbreviation;';
-  const query = item.igdb_id
-    ? `${fields} where id = ${Number(item.igdb_id)};`
-    : `search "${(item.title?.en ?? '').replace(/"/g, '')}"; ${fields} limit 12;`;
-  const results = await igdb(env, query);
-  return results.filter((r) => r.cover?.image_id).map((r) => ({
-    source: 'IGDB' as const,
-    label: `${r.name}${r.first_release_date ? ` (${new Date(r.first_release_date * 1000).getUTCFullYear()})` : ''}`,
-    detail: (r.platforms as { abbreviation?: string }[] | undefined)?.map((p) => p.abbreviation).filter(Boolean).slice(0, 5).join(', '),
-    preview: `https://images.igdb.com/igdb/image/upload/t_cover_small_2x/${r.cover.image_id}.jpg`,
-    fields: { cover: `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${r.cover.image_id}.jpg`, igdb_id: String(r.id) },
-  }));
+/** Wikimedia asks API clients to identify themselves. */
+const WIKI_UA = 'ForYourConsideration/1.0 (https://github.com/gitosaurusrex/for-your-consideration)';
+
+export interface WikiPage {
+  title: string;
+  index: number;
+  description?: string;
+  original?: { source: string };
+  thumbnail?: { source: string };
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+/**
+ * Search results with a lead image, the game's own article first: the description says it's a
+ * game (not a series or franchise), it mentions the release year, and the title matches.
+ * Logos (SVG) are left out — they're series pages, not box art.
+ */
+export function rankWikiPages(pages: WikiPage[], title: string, year?: number): WikiPage[] {
+  return pages
+    .filter((p) => p.original?.source && !/\.svg$/i.test(p.original.source.split('?')[0]))
+    .map((p) => {
+      const desc = p.description ?? '';
+      let score = -p.index; // Wikipedia's own relevance order breaks ties
+      if (/\bgames?\b/i.test(`${p.title} ${desc}`) && !/series|franchise/i.test(desc)) score += 20;
+      if (year && `${p.title} ${desc}`.includes(String(year))) score += 10;
+      if (norm(p.title.replace(/\s*\([^)]*\)$/, '')) === norm(title)) score += 5;
+      return { p, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ p }) => p);
+}
+
+/** Box art from the English Wikipedia article's lead image. No key needed. */
+async function game(item: ItemDoc): Promise<ArtCandidate[]> {
+  const title = item.title?.en ?? '';
+  const url = new URL('https://en.wikipedia.org/w/api.php');
+  url.search = new URLSearchParams({
+    action: 'query', format: 'json', formatversion: '2', origin: '*',
+    generator: 'search', gsrsearch: `${title} video game`, gsrlimit: '10',
+    // pilicense=any: box art is non-free, and the default only returns freely licensed images.
+    prop: 'pageimages|description', piprop: 'original|thumbnail', pithumbsize: '300', pilicense: 'any',
+  }).toString();
+  const res = await fetch(url, { headers: { 'User-Agent': WIKI_UA, accept: 'application/json' } });
+  if (res.status === 429) throw new ArtError('Wikipedia is busy right now — try again in a minute.');
+  if (!res.ok) throw new ArtError(`Wikipedia answered ${res.status}.`);
+  const pages = (((await res.json()) as { query?: { pages?: WikiPage[] } }).query?.pages ?? []);
+  const yr = Number(year(item.release_us ?? item.release_jp)) || undefined;
+  return rankWikiPages(pages, title, yr).slice(0, 12).map((p) => {
+    const cover = p.original!.source.split('?')[0];
+    return {
+      source: 'Wikipedia' as const,
+      label: p.title,
+      detail: p.description,
+      preview: p.thumbnail?.source.split('?')[0] ?? cover,
+      fields: { cover },
+    };
+  });
 }
 
 async function music(item: ItemDoc): Promise<ArtCandidate[]> {
@@ -164,7 +195,7 @@ export async function findArt(env: Bindings, type: EntityType, doc: AnyDoc): Pro
   if (type !== 'item') throw new ArtError('There\'s no automatic artwork for this — upload an image instead.');
   const item = doc as ItemDoc;
   if (!item.title?.en) throw new ArtError('Fill in the English title first.');
-  if (item.kind === 'game') return game(env, item);
+  if (item.kind === 'game') return game(item);
   if (item.kind === 'song' || item.kind === 'album') return music(item);
   return filmOrTv(env, item);
 }

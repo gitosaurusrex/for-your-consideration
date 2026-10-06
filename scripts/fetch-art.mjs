@@ -1,7 +1,7 @@
 // Fills in official artwork in an ingest file before you upload it:
 //   • Films & TV → poster + backdrop from TMDB          (needs TMDB_API_KEY)
 //   • People     → headshot + short bio from TMDB       (needs TMDB_API_KEY)
-//   • Games      → cover art from IGDB                   (needs TWITCH_CLIENT_ID + TWITCH_CLIENT_SECRET)
+//   • Games      → cover art from Wikipedia              (no key; the English article's box art)
 //   • Music      → cover art from Spotify               (no key; needs a real open.spotify.com track/album link)
 //
 // Usage:  npm run fetch-art -- my-batch.json            (fills blanks, saves the file in place)
@@ -18,7 +18,7 @@ if (!path) {
   process.exit(1);
 }
 const file = JSON.parse(fs.readFileSync(path, 'utf8'));
-const { TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET } = process.env;
+const { TMDB_API_KEY } = process.env;
 const en = (v) => (typeof v === 'string' ? v : v?.en);
 const needs = (obj, ...keys) => force || keys.some((k) => !obj[k]);
 let changed = 0;
@@ -107,28 +107,49 @@ async function people() {
   }
 }
 
-// ── IGDB (via Twitch) ──
+// ── Wikipedia ──
+// Same rules as rankWikiPages in worker/art.ts: the game's own article first, logos left out.
+const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+function rankWikiPages(pages, title, year) {
+  return pages
+    .filter((p) => p.original?.source && !/\.svg$/i.test(p.original.source.split('?')[0]))
+    .map((p) => {
+      const desc = p.description ?? '';
+      let score = -p.index;
+      if (/\bgames?\b/i.test(`${p.title} ${desc}`) && !/series|franchise/i.test(desc)) score += 20;
+      if (year && `${p.title} ${desc}`.includes(String(year))) score += 10;
+      if (norm(p.title.replace(/\s*\([^)]*\)$/, '')) === norm(title)) score += 5;
+      return { p, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .map(({ p }) => p);
+}
+
+async function wikipedia(title) {
+  const url = new URL('https://en.wikipedia.org/w/api.php');
+  url.search = new URLSearchParams({
+    action: 'query', format: 'json', formatversion: '2',
+    generator: 'search', gsrsearch: `${title} video game`, gsrlimit: '10',
+    prop: 'pageimages|description', piprop: 'original', pilicense: 'any',
+  }).toString();
+  const headers = { 'User-Agent': 'ForYourConsideration/1.0 (https://github.com/gitosaurusrex/for-your-consideration)' };
+  let res = await fetch(url, { headers });
+  if (res.status === 429) { await new Promise((r) => setTimeout(r, 5000)); res = await fetch(url, { headers }); }
+  if (!res.ok) throw new Error(`Wikipedia ${res.status}`);
+  return (await res.json()).query?.pages ?? [];
+}
+
 async function games() {
   const list = (file.items ?? []).filter((i) => i.kind === 'game' && needs(i, 'cover'));
-  if (!list.length) return;
-  if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return console.log('• Skipping games: set TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET in .env (free at dev.twitch.tv → register an app).');
-  const tok = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' }).then((r) => r.json());
-  if (!tok.access_token) return console.log('  ✗ Could not get an IGDB token — check the Twitch credentials.');
-  for (const game of list) {
-    const query = game.igdb_id
-      ? `fields name,cover.image_id,first_release_date; where id = ${Number(game.igdb_id)};`
-      : `search "${en(game.title).replace(/"/g, '')}"; fields name,cover.image_id,first_release_date; limit 5;`;
+  for (const [n, game] of list.entries()) {
+    if (n) await new Promise((r) => setTimeout(r, 1000)); // go easy on Wikipedia
     try {
-      const res = await fetch('https://api.igdb.com/v4/games', { method: 'POST', headers: { 'Client-ID': TWITCH_CLIENT_ID, Authorization: `Bearer ${tok.access_token}` }, body: query });
-      if (!res.ok) throw new Error(`IGDB ${res.status}`);
-      const results = await res.json();
-      const year = Number(String(game.release_us ?? game.release_jp ?? '').slice(0, 4));
-      const hit = results.find((r) => r.cover && year && new Date(r.first_release_date * 1000).getUTCFullYear() === year) ?? results.find((r) => r.cover);
-      if (!hit) { console.log(`  ? ${en(game.title)}: not found on IGDB — add "igdb_id"`); continue; }
-      game.cover = `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${hit.cover.image_id}.jpg`;
-      game.igdb_id ??= String(hit.id);
+      const year = Number(String(game.release_us ?? game.release_jp ?? '').slice(0, 4)) || undefined;
+      const [hit] = rankWikiPages(await wikipedia(en(game.title)), en(game.title), year);
+      if (!hit) { console.log(`  ? ${en(game.title)}: no Wikipedia article with box art — add "cover" by hand`); continue; }
+      game.cover = hit.original.source.split('?')[0];
       changed++;
-      console.log(`  ✓ ${en(game.title)} → ${hit.name}`);
+      console.log(`  ✓ ${en(game.title)} → ${hit.title}${hit.description ? ` (${hit.description})` : ''}`);
     } catch (e) { console.log(`  ✗ ${en(game.title)}: ${e.message}`); }
   }
 }

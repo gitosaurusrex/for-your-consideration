@@ -41,7 +41,7 @@ export const api = {
   upload,
   importImage: (url: string) => request<{ url: string }>('POST', '/media/import', { url }),
   mirror: (skip: string[], limit = 6) => request<MirrorResult>('POST', '/media/mirror', { skip, limit }),
-  artStatus: () => request<{ tmdb: boolean; igdb: boolean; spotify: boolean }>('GET', '/art/status'),
+  artStatus: () => request<{ tmdb: boolean; wikipedia: boolean; spotify: boolean }>('GET', '/art/status'),
   findArt: (type: EntityType, doc: unknown) => request<{ candidates: ArtCandidate[] }>('POST', '/art/search', { type, doc }),
   login: (password: string) => request<{ ok: true }>('POST', '/login', { password }),
   logout: () => request<{ ok: true }>('POST', '/logout'),

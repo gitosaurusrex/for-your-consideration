@@ -128,7 +128,7 @@ function FindArt({ entityType, form, onChoose, onClose }: {
       </header>
       {state.loading && <p className="muted">Searching…</p>}
       {state.error && <p className="callout callout--warn">{state.error}</p>}
-      {!state.loading && !state.error && !state.candidates.length && <p className="muted">Nothing found. Try adjusting the English title or year, or add the TMDB/IGDB id, then search again.</p>}
+      {!state.loading && !state.error && !state.candidates.length && <p className="muted">Nothing found. Try adjusting the English title or year, or add the TMDB id, then search again.</p>}
       <div className="find-art__grid">
         {state.candidates.map((c, i) => (
           <button type="button" key={i} className="find-art__pick" onClick={() => onChoose(c)}>

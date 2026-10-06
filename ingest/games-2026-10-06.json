@@ -195,7 +195,8 @@
       ],
       "creators": [
         "glen-schofield"
-      ]
+      ],
+      "cover": "https://upload.wikimedia.org/wikipedia/en/5/57/Dead_Space_Box_Art.jpg"
     },
     {
       "id": "heavy-rain",
@@ -231,7 +232,8 @@
       ],
       "creators": [
         "david-cage"
-      ]
+      ],
+      "cover": "https://upload.wikimedia.org/wikipedia/en/c/c1/Heavy_Rain_Cover_Art.jpg"
     },
     {
       "id": "death-stranding",
@@ -272,7 +274,8 @@
         "yoji-shinkawa"
       ],
       "featured": true,
-      "added": "2026-10-03"
+      "added": "2026-10-03",
+      "cover": "https://upload.wikimedia.org/wikipedia/en/2/22/Death_Stranding.jpg"
     },
     {
       "id": "god-of-war-iii",
@@ -307,7 +310,8 @@
       ],
       "creators": [
         "stig-asmussen"
-      ]
+      ],
+      "cover": "https://upload.wikimedia.org/wikipedia/en/8/8b/God_of_War_III_cover_art.jpg"
     }
   ]
 }

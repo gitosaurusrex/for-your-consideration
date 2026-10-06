@@ -4,8 +4,6 @@ export interface Bindings {
   MEDIA?: R2Bucket;
   MEDIA_KV?: KVNamespace;
   TMDB_API_KEY?: string;
-  TWITCH_CLIENT_ID?: string;
-  TWITCH_CLIENT_SECRET?: string;
   ADMIN_PASSWORD?: string;
   DEV_AUTH_BYPASS?: string;
 }

@@ -29,6 +29,6 @@
   // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "fyc-media" }],
   // Secrets (set with `npx wrangler secret put NAME`, never in this file):
   //   ADMIN_PASSWORD (admin login, 12+ characters)
-  //   TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET (optional, for "Find art")
+  //   TMDB_API_KEY (optional, for "Find art" on films, TV and people)
   "observability": { "enabled": true }
 }

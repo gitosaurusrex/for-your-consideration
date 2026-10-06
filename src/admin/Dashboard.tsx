@@ -22,7 +22,7 @@ export function Dashboard() {
   const run = useAction();
   const [ingests, setIngests] = useState<IngestListRow[]>([]);
   const [text, setText] = useState<SiteSettings['text']>(data.settings.text);
-  const [art, setArt] = useState<{ tmdb: boolean; igdb: boolean } | null>(null);
+  const [art, setArt] = useState<{ tmdb: boolean; wikipedia: boolean } | null>(null);
   const mirror = useMirror();
   const images = countLinked([...data.items, ...data.people, ...data.companies]);
   useEffect(() => {
@@ -97,8 +97,8 @@ export function Dashboard() {
         <MirrorProgress {...mirror} />
         {art && (
           <p className="muted small">
-            “Find art” sources: TMDB (films, TV, people) {art.tmdb ? '✓' : '✗ not set up'} · IGDB (games) {art.igdb ? '✓' : '✗ not set up'} · Spotify (music) ✓ always
-            {(!art.tmdb || !art.igdb) && <> — see README → Artwork for the free keys.</>}
+            “Find art” sources: TMDB (films, TV, people) {art.tmdb ? '✓' : '✗ not set up'} · Wikipedia (games) ✓ always · Spotify (music) ✓ always
+            {!art.tmdb && <> — see README → Artwork for the free key.</>}
           </p>
         )}
       </section>
