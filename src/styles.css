@@ -533,6 +533,9 @@ p { margin: 0; }
 .person-info { flex: 1 1 320px; min-width: 0; }
 .bio { margin-top: 16px; font-size: 17px; color: var(--text-soft); max-width: 42em; text-wrap: pretty; }
 .bio-credit { display: block; margin-top: 8px; font-size: 11.5px; color: var(--faint); }
+/* Under summaries and bios that are machine translations (flagged in the admin). */
+.auto-translated { display: block; margin-top: 8px; font-size: 12px; color: var(--faint); }
+.auto-translated::before { content: '⟳ '; }
 
 /* ───────────────────────────── Chips, filters, search ───────────────────────────── */
 .search-link { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); color: var(--muted); transition: color 0.2s, background 0.2s, transform 0.3s var(--ease-spring); }

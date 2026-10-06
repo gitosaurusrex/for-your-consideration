@@ -1,6 +1,6 @@
 import {
   fieldsFor, isDate, isHttpUrl, isLang, LANG_INFO, LANGS, MEDIA_PREFIX, KIND_MEDIUM, PLATFORMS, slugify, genreKey, TRANSLATIONS,
-  type AnyDoc, type EntityType, type FieldSpec, type I18n, type ItemKind, type Medium,
+  type AnyDoc, type EntityType, type FieldSpec, type I18n, type ItemKind, type Medium, type Sources,
 } from './schema';
 
 export interface Normalized<T = AnyDoc> {
@@ -70,7 +70,7 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
   const derived = type === 'item' ? ['medium', ...(KIND_MEDIUM[kind!] === 'play' ? ['year'] : [])] : [];
   // Fields the site no longer has. Older exports and files still contain them, so they're dropped without a warning.
   const retired = type === 'item' ? ['note'] : [];
-  const known = new Set(fields.map((s) => s.key).concat(derived, retired));
+  const known = new Set(fields.map((s) => s.key).concat(derived, retired, ['sources']));
   for (const k of Object.keys(input)) if (!known.has(k)) warnings.push(`unknown field "${k}" was ignored`);
 
   const doc: Record<string, unknown> = {};
@@ -80,6 +80,9 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
     const missing = spec.i18n ? !(value as I18n | undefined)?.en : value === undefined;
     if (spec.required && missing) errors.push(`missing required field "${spec.key}${spec.i18n ? '.en' : ''}"`);
   }
+
+  const sources = readSources(input.sources, fields, doc, warnings);
+  if (sources) doc.sources = sources;
 
   if (type === 'item') {
     doc.medium = KIND_MEDIUM[kind!];
@@ -111,6 +114,27 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
   }
 
   return { doc: errors.length ? null : (compact(doc) as unknown as AnyDoc), errors, warnings };
+}
+
+/**
+ * Source flags ("summary.th": "ai") for this record's translated fields. A flag for text that isn't there is
+ * dropped silently (the text was cleared); a malformed one is reported.
+ */
+function readSources(v: unknown, fields: FieldSpec[], doc: Record<string, unknown>, warnings: string[]): Sources | undefined {
+  if (v == null) return undefined;
+  if (typeof v !== 'object' || Array.isArray(v)) { warnings.push('"sources" should be an object like { "summary.th": "ai" }; it was ignored'); return undefined; }
+  const translated = new Set(fields.filter((f) => f.i18n).map((f) => f.key));
+  const out: Sources = {};
+  for (const [k, src] of Object.entries(v as Record<string, unknown>)) {
+    const dot = k.lastIndexOf('.');
+    const field = k.slice(0, dot), lang = k.slice(dot + 1);
+    if (dot < 1 || !translated.has(field) || !isLang(lang) || (src !== 'tmdb' && src !== 'ai')) {
+      warnings.push(`source flag "${k}": ${JSON.stringify(src)} was ignored (expected "field.lang": "tmdb" or "ai")`);
+      continue;
+    }
+    if ((doc[field] as I18n | undefined)?.[lang]) out[k] = src;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 function readField(spec: FieldSpec, v: unknown, errors: string[], warnings: string[]): unknown {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { MEDIA, type I18n, type Medium, type SiteSettings } from '../shared/schema';
 import { api, type IngestListRow } from './api';
@@ -6,6 +6,7 @@ import { useAction, useAdmin } from './context';
 import { I18nInput } from './fields';
 import { countLinked, MirrorProgress, useMirror } from './mirror';
 import { FillPeopleProgress, missingPhotoOrBio, useFillPeople } from './peopleFill';
+import { TranslateFillProgress, useTranslateFill } from './translateFill';
 
 const MEDIUM_UI: Record<Medium, { icon: string; label: string }> = {
   watch: { icon: '🎬', label: 'Film & TV' },
@@ -26,6 +27,10 @@ export function Dashboard() {
   const [art, setArt] = useState<{ tmdb: boolean; igdb: boolean } | null>(null);
   const mirror = useMirror();
   const fillPeople = useFillPeople();
+  const [tr, setTr] = useState<{ records: number; fields: number; ai: boolean; tmdb: boolean } | null>(null);
+  const loadTr = useCallback(() => { api.translateStatus().then(setTr).catch(() => {}); }, []);
+  useEffect(loadTr, [loadTr]);
+  const translateFill = useTranslateFill(loadTr);
   const needPeople = missingPhotoOrBio(data.people).length;
   const images = countLinked([...data.items, ...data.people, ...data.companies]);
   useEffect(() => {
@@ -74,6 +79,26 @@ export function Dashboard() {
           {data.people.length} people · {data.companies.length} studios · {data.genres.length} genres —{' '}
           <Link to="/admin/items">manage items</Link>
         </p>
+      </section>
+
+      <section className="panel">
+        <h2>Translations</h2>
+        <p className="muted small">
+          Fills empty Japanese, Thai and Spanish text: official titles, names and bios from TMDB first, then Cloudflare AI
+          translates the rest from English (summaries, bios, genre names). Only empty fields are filled. Each filled field is
+          flagged “From TMDB” or “AI-translated” on its edit page; untick the flag once you've reviewed it. Visitors see
+          “Translated automatically” under AI-translated summaries and bios.
+        </p>
+        {tr && (
+          <p className="small">
+            <b>{tr.records}</b> record{tr.records === 1 ? ' has' : 's have'} {tr.fields} empty translation{tr.fields === 1 ? '' : 's'}
+            {tr.records > 0 && tr.ai && !translateFill.running && (
+              <> — <button className="link-button" onClick={() => translateFill.run(tr.records)}>fill them in</button></>
+            )}
+          </p>
+        )}
+        {tr && !tr.ai && <p className="small text-warn">Cloudflare AI isn't connected yet: add the "ai" binding to wrangler.jsonc and deploy (see README → Translations).</p>}
+        <TranslateFillProgress {...translateFill} />
       </section>
 
       <section className="panel">

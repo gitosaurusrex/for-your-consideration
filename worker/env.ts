@@ -6,6 +6,8 @@ export interface Bindings {
   TMDB_API_KEY?: string;
   TWITCH_CLIENT_ID?: string;
   TWITCH_CLIENT_SECRET?: string;
+  /** Cloudflare Workers AI, for filling translation gaps (free daily allowance). */
+  AI?: Ai;
   ADMIN_PASSWORD?: string;
   DEV_AUTH_BYPASS?: string;
 }

@@ -26,6 +26,7 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [translating, setTranslating] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -63,6 +64,25 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
     }
   };
 
+  /** Fill this record's empty translations (TMDB, then Cloudflare AI) into the form, without saving. */
+  const translate = async () => {
+    setTranslating(true);
+    try {
+      const r = await api.translate(type, form);
+      const n = Object.keys(r.filled).length;
+      if (n) setForm((f) => ({ ...f!, ...r.patch }));
+      const tmdb = Object.values(r.filled).filter((s) => s === 'tmdb').length;
+      toast(n
+        ? `Filled ${n} translation${n === 1 ? '' : 's'} (${tmdb} from TMDB, ${n - tmdb} by AI). Check them, then save.`
+        : 'Nothing to fill: every translation this can do is already there.');
+      for (const note of [...r.notes, ...(r.aiStopped ? [r.aiStopped] : [])]) toast(note, 'error');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   const remove = async () => {
     if (!confirm(`Delete “${title}”? This can't be undone.`)) return;
     try {
@@ -83,6 +103,12 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
       <div className="admin-head">
         <h1>{isNew ? `New ${TYPE_LABEL[type].one}` : title || id}</h1>
         <div className="admin-head__actions">
+          {type !== 'company' && (
+            <button className="btn btn--find" onClick={translate} disabled={translating}
+              title="Fill empty translations: official titles, names and bios from TMDB first, then Cloudflare AI for the rest. Nothing is saved until you save.">
+              {translating ? 'Translating…' : '✨ Translate missing'}
+            </button>
+          )}
           {saved && <a className="btn btn--ghost" href={sitePath(type, saved)} target="_blank" rel="noreferrer">View on site ↗</a>}
           {!isNew && <button className="btn btn--danger" onClick={remove}>Delete</button>}
         </div>

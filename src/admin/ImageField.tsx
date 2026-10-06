@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
-import { hasText, isStoredImage, KIND_MEDIUM, type EntityType, type FieldSpec, type I18n, type ItemKind } from '../shared/schema';
+import { hasText, isStoredImage, KIND_MEDIUM, type EntityType, type FieldSpec, type I18n, type ItemKind, type Sources } from '../shared/schema';
 import { api, type ArtCandidate } from './api';
 import { useAdmin } from './context';
 
@@ -56,6 +56,10 @@ export function ImageField({ spec, value, onChange, entityType, form, setFields 
     const bio = form.bio as I18n | undefined;
     const keptBio = hasText(bio) && 'bio' in patch;
     if (keptBio) { delete patch.bio; delete patch.bio_credit; }
+    if (patch.sources) {
+      const incoming = Object.entries(patch.sources as Sources).filter(([k]) => !(keptBio && k.startsWith('bio.')));
+      patch.sources = { ...(form.sources as Sources | undefined), ...Object.fromEntries(incoming) };
+    }
     if (data.settings.keepCopies) {
       setBusy('Saving a copy…');
       for (const [k, v] of Object.entries(c.fields)) {
