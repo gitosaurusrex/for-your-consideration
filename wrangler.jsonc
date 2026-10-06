@@ -20,8 +20,13 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Uploaded and copied artwork. Create it once with `npx wrangler r2 bucket create fyc-media`.
-  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "fyc-media" }],
+  // Uploaded and copied artwork, in Workers KV (free, no payment method needed).
+  // Replace the id with the one printed by `npx wrangler kv namespace create fyc-media`.
+  "kv_namespaces": [{ "binding": "MEDIA_KV", "id": "00000000000000000000000000000000" }],
+  // Or use R2 instead (needs R2 enabled in the dashboard, which asks for a payment method):
+  // create it with `npx wrangler r2 bucket create fyc-media`, then uncomment this line.
+  // When both are set, R2 is used.
+  // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "fyc-media" }],
   // Secrets for "Find art" (set with `npx wrangler secret put NAME`, never in this file):
   //   TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET
   "vars": {

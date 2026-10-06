@@ -30,7 +30,7 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
 ```
 Browser ── GET /api/catalog, /media/* ──┐
                                         ▼
-   Cloudflare Worker (worker/)  ──  D1 database (SQLite) + R2 (images)
+   Cloudflare Worker (worker/)  ──  D1 database (SQLite) + KV or R2 (images)
                               ▲
 /admin ── Cloudflare Access login ── /api/admin/*  (JWT verified again in the Worker)
 ```
@@ -38,7 +38,7 @@ Browser ── GET /api/catalog, /media/* ──┐
 - **Frontend:** React + Vite (`src/`). The admin is a separate lazy-loaded bundle (`src/admin/`), so visitors never download it.
 - **Backend:** one Cloudflare Worker using [Hono](https://hono.dev) (`worker/`). It serves the static site and the API.
 - **Database:** Cloudflare D1. Every record is a JSON document (`migrations/`).
-- **Images:** Cloudflare R2. Uploaded and copied artwork is served from `/media/<content-hash>.<ext>`, cached permanently.
+- **Images:** Workers KV by default, or Cloudflare R2 if you enable it. Uploaded and copied artwork is served from `/media/<content-hash>.<ext>`, cached permanently.
 - **Shared rules:** `src/shared/` holds the field definitions, validation and ingest/diff logic. Both the Worker and the admin forms use it, so there's one source of truth.
 - **Login:** Cloudflare Access (Zero Trust, free for small teams) shows an email-code login in front of `/admin`. There's no login code in the app. The Worker still verifies Access's signed token on every admin API call.
 
@@ -62,7 +62,7 @@ npm test                         # validation, ingest and login tests
 ### 0. Before you start
 
 - A free [Cloudflare account](https://dash.cloudflare.com/sign-up), and Node 22.9+ on your computer.
-- **Enable R2 once in the dashboard** (R2 Object Storage → *Purchase R2 / Add R2 subscription*). Wrangler can't create the image bucket until you do; it fails with "Please enable R2 through the Cloudflare Dashboard". Cloudflare asks for a payment method here, but the free tier (10 GB) isn't charged.
+- Images are stored in Workers KV, which needs no payment method. (R2 is supported too, but enabling it asks for a card; see [Using R2 instead](#using-r2-instead-of-kv).)
 - Zero Trust (used for the admin login in step 2) also asks for a payment method when you pick its **Free** plan. That isn't charged either.
 
 ### 1. Create the database and image storage, then deploy
@@ -71,10 +71,10 @@ npm test                         # validation, ingest and login tests
 npm install
 npx wrangler login
 npx wrangler d1 create fyc
-npx wrangler r2 bucket create fyc-media
+npx wrangler kv namespace create fyc-media
 ```
 
-Paste the `database_id` that `d1 create` prints into [`wrangler.jsonc`](wrangler.jsonc), replacing the zeros. The binding (`DB`) and the bucket (`fyc-media`) are already set up there. If Wrangler offers to add the database or bucket to your config for you, say **no**, so you don't end up with a duplicate entry.
+Paste the `database_id` that `d1 create` prints, and the `id` that `kv namespace create` prints, into [`wrangler.jsonc`](wrangler.jsonc), replacing the zeros. The bindings (`DB`, `MEDIA_KV`) are already set up there. If Wrangler offers to add the database or namespace to your config for you, say **no**, so you don't end up with a duplicate entry.
 
 Then deploy:
 
@@ -89,6 +89,10 @@ Wrangler prints your site's address, `https://for-your-consideration.<your-subdo
 - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 
 If a build fails on the migrations step with a permissions error, set the deploy command to `npx wrangler deploy` and run `npm run db:migrate:remote` from your computer whenever a new file appears in `migrations/`.
+
+#### Using R2 instead of KV
+
+KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a personal catalog. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and deploy. Images already in KV aren't moved automatically.
 
 ### 2. Protect the admin with Cloudflare Access (no code)
 
@@ -153,7 +157,7 @@ Database migrations are applied as part of either path.
   - **✨ Find art:** pick from official artwork. Films and TV come from TMDB (and when the TMDB id is known, the choices include alternative and Japanese posters). Games come from IGDB, music from the item's Spotify link, and headshots from TMDB.
   - **⤓ Save a copy:** download a linked image into your own storage.
 
-  Stored images live in a Cloudflare R2 bucket (free up to 10 GB) and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
+  Stored images live in Workers KV (free up to 1 GB) or an R2 bucket and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
 - **Artwork for batch files:** `npm run fetch-art -- my-batch.json` fills poster/cover/headshot links into a file before you upload it. Keys go in `.env` (see `.env.example`).
 - **One-off edits:** Admin → Items / People / Studios / Genres.
   - The edit forms show English and Japanese side by side.
@@ -161,14 +165,14 @@ Database migrations are applied as part of either path.
   - Delete anything. People, studios and genres that items still use are protected.
   - "Only ones needing attention" lists records missing Japanese, art, links, photos or bios.
 - **Sections on/off:** the Dashboard switches hide Film & TV, Music or Games from the public site without deleting anything.
-- **Backups:** Dashboard → **Export everything** downloads the whole database in the ingest format (images stored in R2 are referenced by their `/media/…` paths, so the R2 bucket is part of your backup too). D1 also has point-in-time restore ("Time Travel": 7 days on the free plan, 30 on paid) via `npx wrangler d1 time-travel`.
+- **Backups:** Dashboard → **Export everything** downloads the whole database in the ingest format (stored images are referenced by their `/media/…` paths, so the KV namespace or R2 bucket is part of your backup too). D1 also has point-in-time restore ("Time Travel": 7 days on the free plan, 30 on paid) via `npx wrangler d1 time-travel`.
 
 > The example content's watch/Spotify/YouTube links are searches, Paddington 2's "free, limited time" badge is a demo, and *Outer Wilds* has no Japan release date set. Replace them with real details. Have the Japanese proofread.
 
 ## Project layout
 
 ```
-worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export, images (R2), art lookup; Access JWT check
+worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export, images (KV/R2), art lookup; Access JWT check
 migrations/      D1 schema
 src/shared/      field definitions, validation, ingest diff/merge (used by Worker + admin)
 src/admin/       admin UI (lazy-loaded)

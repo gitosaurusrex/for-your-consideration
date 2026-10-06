@@ -1,6 +1,8 @@
 export interface Bindings {
   DB: D1Database;
-  MEDIA: R2Bucket;
+  /** Image storage: R2 when bound, otherwise Workers KV (no payment method needed). */
+  MEDIA?: R2Bucket;
+  MEDIA_KV?: KVNamespace;
   TMDB_API_KEY?: string;
   TWITCH_CLIENT_ID?: string;
   TWITCH_CLIENT_SECRET?: string;
