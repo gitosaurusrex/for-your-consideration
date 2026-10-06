@@ -2,12 +2,14 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
+import { loadCatalog } from './data';
 import { LangProvider } from './i18n';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Browse } from './pages/Browse';
-import { MusicDetail, TitleDetail } from './pages/Detail';
-import { CountryPage, GenrePage, PersonPage } from './pages/Collections';
+import { Detail } from './pages/Detail';
+import { CountryPage, GenrePage, PersonPage, StudioPage } from './pages/Collections';
+import { Search } from './pages/Search';
 import { NotFound } from './pages/NotFound';
 import './styles.css';
 
@@ -18,20 +20,39 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: 'watch', element: <Browse section="watch" /> },
       { path: 'listen', element: <Browse section="listen" /> },
-      { path: 'title/:slug', element: <TitleDetail /> },
-      { path: 'music/:slug', element: <MusicDetail /> },
-      { path: 'genre/:slug', element: <GenrePage /> },
+      { path: 'play', element: <Browse section="play" /> },
+      { path: 'title/:slug', element: <Detail medium="watch" /> },
+      { path: 'music/:slug', element: <Detail medium="listen" /> },
+      { path: 'game/:slug', element: <Detail medium="play" /> },
+      { path: 'genre/:medium/:slug', element: <GenrePage /> },
       { path: 'person/:slug', element: <PersonPage /> },
+      { path: 'studio/:slug', element: <StudioPage /> },
       { path: 'country/:code', element: <CountryPage /> },
+      { path: 'search', element: <Search /> },
       { path: '*', element: <NotFound /> },
     ],
   },
+  // The admin is a separate chunk, so visitors never download it.
+  { path: 'admin/*', lazy: async () => ({ Component: (await import('./admin/AdminApp')).AdminApp }) },
 ]);
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <LangProvider>
-      <RouterProvider router={router} />
-    </LangProvider>
-  </StrictMode>,
-);
+const root = createRoot(document.getElementById('root')!);
+const isAdmin = location.pathname.startsWith('/admin');
+
+// The public site needs the catalog before it renders; the admin loads its own data.
+(isAdmin ? Promise.resolve() : loadCatalog())
+  .then(() =>
+    root.render(
+      <StrictMode>
+        <LangProvider>
+          <RouterProvider router={router} />
+        </LangProvider>
+      </StrictMode>,
+    ),
+  )
+  .catch((err) => {
+    console.error(err);
+    const msg = document.querySelector('.boot__msg');
+    if (msg) msg.textContent = 'Could not load recommendations — please refresh. / 読み込めませんでした。再読み込みしてください。';
+    document.querySelector('.boot')?.classList.add('boot--error');
+  });

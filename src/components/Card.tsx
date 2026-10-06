@@ -1,8 +1,8 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
 import type { CSSProperties, PointerEvent } from 'react';
 import type { Item } from '../types';
-import { itemHue, itemKey, itemPath } from '../data';
-import { useLang } from '../i18n';
+import { isFreeNow, isLimitedNow, itemHue, itemKey, itemPath } from '../data';
+import { formatDate, useLang } from '../i18n';
 import { Art } from './Art';
 import { VLink } from './VLink';
 import { claimArt, isActiveArt } from '../transitions';
@@ -28,7 +28,9 @@ export function Card({ item, instance, size = 'md', index = 0 }: { item: Item; i
   };
   const reset = () => { mx.set(0.5); my.set(0.5); };
 
-  const kindLabel = t[item.en.kind];
+  const kindLabel = t[item.doc.kind];
+  const free = isFreeNow(item);
+  const limited = isLimitedNow(item);
 
   return (
     <motion.article
@@ -49,6 +51,9 @@ export function Card({ item, instance, size = 'md', index = 0 }: { item: Item; i
           />
           <span className="card__shine" aria-hidden />
           {isNew(item.en.added) && <span className="card__badge">{t.new}</span>}
+          {(free || limited) && (
+            <span className={`card__ribbon ${free ? 'card__ribbon--free' : ''}`}>{free ? t.freeShort : `⏳ ${t.limitedShort}`}</span>
+          )}
         </motion.div>
         <div className="card__meta">
           <h3 className="card__title">{loc.title}</h3>
@@ -57,6 +62,7 @@ export function Card({ item, instance, size = 'md', index = 0 }: { item: Item; i
             <span aria-hidden>·</span>
             <span>{kindLabel}</span>
           </p>
+          {item.en.added && <p className="card__added">＋ {formatDate(item.en.added, lang)}</p>}
         </div>
       </VLink>
     </motion.article>

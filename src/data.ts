@@ -1,90 +1,125 @@
-import type {
-  Entry, Genre, GenreFields, Item, Lang, Localized, Music, MusicFields, Person, PersonFields,
-  SiteFields, Title, TitleFields,
-} from './types';
-import siteRaw from '../content/site.json';
+import { availabilityActive, genreKey, MEDIA, type CompanyDoc, type GenreDoc, type ItemDoc, type Lang, type Medium, type PersonDoc, type SiteSettings } from './shared/schema';
+import type { Company, Entry, Genre, Item, Localized, Person } from './types';
 
-type Glob = Record<string, Localized<unknown>>;
-
-const slugOf = (path: string) => path.split('/').pop()!.replace(/\.json$/, '');
-
-/** Drop empty strings / empty arrays so a blank Japanese field falls back to English. */
-function compact<T extends object>(obj: Partial<T> = {}): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== '' && v != null && !(Array.isArray(v) && v.length === 0)),
-  ) as Partial<T>;
+export interface Catalog {
+  settings: SiteSettings;
+  items: ItemDoc[];
+  people: PersonDoc[];
+  companies: CompanyDoc[];
+  genres: GenreDoc[];
 }
 
-function load<T extends object>(glob: Glob): Entry<T>[] {
-  return Object.entries(glob).map(([path, raw]) => {
-    const file = raw as Localized<T>;
-    const en = file.en;
-    return { slug: slugOf(path), en, ja: { ...en, ...compact<T>(file.ja) } };
-  });
+const isI18n = (v: unknown): v is { en: string; ja?: string } =>
+  !!v && typeof v === 'object' && !Array.isArray(v) && typeof (v as { en?: unknown }).en === 'string';
+
+function localize<T extends object>(doc: T, lang: Lang): Localized<T> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(doc)) out[k] = isI18n(v) ? (lang === 'ja' && v.ja) || v.en : v;
+  return out as Localized<T>;
 }
+
+const entry = <T extends { id: string }>(doc: T): Entry<T> => ({ slug: doc.id, doc, en: localize(doc, 'en'), ja: localize(doc, 'ja') });
+
+// Live bindings: populated once by setCatalog() before the app renders.
+export let settings: SiteSettings;
+export let allItems: Item[] = [];
+export let people: Person[] = [];
+export let companies: Company[] = [];
+export let genres: Genre[] = [];
+export let enabledMedia: Medium[] = [];
+let byMedium: Record<Medium, Item[]> = { watch: [], listen: [], play: [] };
+let itemMap = new Map<string, Item>();
+let personMap = new Map<string, Person>();
+let companyMap = new Map<string, Company>();
+let genreMap = new Map<string, Genre>();
 
 const byAddedDesc = (a: Item, b: Item) => (b.en.added ?? '').localeCompare(a.en.added ?? '') || b.en.year - a.en.year;
 
-export const titles: Title[] = load<TitleFields>(import.meta.glob('../content/titles/*.json', { eager: true, import: 'default' }))
-  .map((e) => ({ ...e, section: 'watch' as const }));
-export const music: Music[] = load<MusicFields>(import.meta.glob('../content/music/*.json', { eager: true, import: 'default' }))
-  .map((e) => ({ ...e, section: 'listen' as const }));
-export const people: Person[] = load<PersonFields>(import.meta.glob('../content/people/*.json', { eager: true, import: 'default' }));
-export const genres: Genre[] = load<GenreFields>(import.meta.glob('../content/genres/*.json', { eager: true, import: 'default' }));
-export const site = load<SiteFields>({ 'site.json': siteRaw as Localized<SiteFields> })[0];
+export function setCatalog(c: Catalog) {
+  settings = c.settings;
+  enabledMedia = MEDIA.filter((m) => c.settings.media[m]);
+  allItems = c.items.map((d) => ({ ...entry(d), section: d.medium })).sort(byAddedDesc);
+  people = c.people.map(entry);
+  companies = c.companies.map(entry);
+  genres = c.genres.map(entry);
+  byMedium = { watch: [], listen: [], play: [] };
+  for (const i of allItems) byMedium[i.section].push(i);
+  itemMap = new Map(allItems.map((i) => [i.slug, i]));
+  personMap = new Map(people.map((p) => [p.slug, p]));
+  companyMap = new Map(companies.map((p) => [p.slug, p]));
+  genreMap = new Map(genres.map((g) => [g.slug, g]));
+}
 
-export const allItems: Item[] = [...titles, ...music].sort(byAddedDesc);
-titles.sort(byAddedDesc);
-music.sort(byAddedDesc);
+export async function loadCatalog() {
+  const res = await fetch('/api/catalog');
+  if (!res.ok) throw new Error(`catalog ${res.status}`);
+  setCatalog(await res.json());
+}
 
-const index = <T extends { slug: string }>(list: T[]) => new Map(list.map((x) => [x.slug, x]));
-const titleMap = index(titles);
-const musicMap = index(music);
-const personMap = index(people);
-const genreMap = index(genres);
-
-export const getTitle = (slug: string) => titleMap.get(slug);
-export const getMusic = (slug: string) => musicMap.get(slug);
+export const itemsIn = (m: Medium) => byMedium[m];
+export const getItem = (slug: string, medium?: Medium) => {
+  const i = itemMap.get(slug);
+  return i && (!medium || i.section === medium) ? i : undefined;
+};
 export const getPerson = (slug: string) => personMap.get(slug);
-export const getGenre = (slug: string) => genreMap.get(slug);
+export const getCompany = (slug: string) => companyMap.get(slug);
+export const getGenre = (medium: Medium, slug: string) => genreMap.get(genreKey(medium, slug));
+export const genresOf = (m: Medium) => genres.filter((g) => g.doc.medium === m);
 
-export const itemPath = (item: Item) => (item.section === 'watch' ? `/title/${item.slug}` : `/music/${item.slug}`);
-export const itemArt = (item: Item) => (item.section === 'watch' ? item.en.poster : item.en.cover);
+const PATH: Record<Medium, string> = { watch: 'title', listen: 'music', play: 'game' };
+export const itemPath = (item: Item) => `/${PATH[item.section]}/${item.slug}`;
+export const genrePath = (medium: Medium, slug: string) => `/genre/${medium}/${slug}`;
+export const itemArt = (item: Item) => item.doc.poster ?? item.doc.cover;
 export const itemKey = (item: Item) => `${item.section}:${item.slug}`;
 
-/** People credited on an item, in billing order, with their role. */
-export function creditsOf(item: Item): { slug: string; role: 'director' | 'cast' | 'artist' }[] {
-  if (item.section === 'listen') return item.en.artists.map((slug) => ({ slug, role: 'artist' as const }));
+export type Role = 'director' | 'cast' | 'artist' | 'creator';
+
+/** People credited on an item, in billing order. */
+export function creditsOf(item: Item): { slug: string; role: Role }[] {
+  const d = item.doc;
   return [
-    ...item.en.directors.map((slug) => ({ slug, role: 'director' as const })),
-    ...(item.en.cast ?? []).map((slug) => ({ slug, role: 'cast' as const })),
+    ...(d.directors ?? []).map((slug) => ({ slug, role: 'director' as const })),
+    ...(d.cast ?? []).map((slug) => ({ slug, role: 'cast' as const })),
+    ...(d.artists ?? []).map((slug) => ({ slug, role: 'artist' as const })),
+    ...(d.creators ?? []).map((slug) => ({ slug, role: 'creator' as const })),
   ];
 }
 
 export function worksOf(personSlug: string) {
-  const directed = titles.filter((t) => t.en.directors.includes(personSlug));
-  const starred = titles.filter((t) => t.en.cast?.includes(personSlug));
-  const recorded = music.filter((m) => m.en.artists.includes(personSlug));
-  return { directed, starred, recorded };
+  const has = (list?: string[]) => !!list?.includes(personSlug);
+  return {
+    directed: allItems.filter((i) => has(i.doc.directors)),
+    starred: allItems.filter((i) => has(i.doc.cast)),
+    recorded: allItems.filter((i) => has(i.doc.artists)),
+    created: allItems.filter((i) => has(i.doc.creators)),
+  };
 }
 
-export const itemsInGenre = (genreSlug: string) => allItems.filter((i) => i.en.genres.includes(genreSlug));
-export const itemsFromCountry = (code: string) => allItems.filter((i) => i.en.countries.includes(code));
+export function studioWorks(slug: string) {
+  return {
+    developed: allItems.filter((i) => i.doc.developers?.includes(slug)),
+    published: allItems.filter((i) => i.doc.publishers?.includes(slug) && !i.doc.developers?.includes(slug)),
+  };
+}
 
-/**
- * "More like this": score other items by shared people (strongest signal),
- * shared genres, same section and a similar era.
- */
+export const itemsInGenre = (medium: Medium, slug: string) => byMedium[medium].filter((i) => i.doc.genres.includes(slug));
+export const itemsFromCountry = (code: string) => allItems.filter((i) => i.doc.countries?.includes(code));
+
+/** "More like this": shared people and studios count most, then shared genres (same medium only). */
 export function related(item: Item, limit = 8): Item[] {
-  const people = new Set(creditsOf(item).map((c) => c.slug));
-  const gs = new Set(item.en.genres);
+  const ppl = new Set(creditsOf(item).map((c) => c.slug));
+  const studios = new Set([...(item.doc.developers ?? []), ...(item.doc.publishers ?? [])]);
+  const gs = new Set(item.doc.genres);
   return allItems
-    .filter((o) => itemKey(o) !== itemKey(item))
+    .filter((o) => o.slug !== item.slug)
     .map((o) => {
       let score = 0;
-      for (const c of creditsOf(o)) if (people.has(c.slug)) score += 3;
-      for (const g of o.en.genres) if (gs.has(g)) score += 2;
-      if (o.section === item.section) score += 1;
+      for (const c of creditsOf(o)) if (ppl.has(c.slug)) score += 3;
+      for (const s of [...(o.doc.developers ?? []), ...(o.doc.publishers ?? [])]) if (studios.has(s)) score += 2;
+      if (o.section === item.section) {
+        score += 1;
+        for (const g of o.doc.genres) if (gs.has(g)) score += 2;
+      }
       if (Math.abs(o.en.year - item.en.year) <= 5) score += 0.5;
       return { o, score };
     })
@@ -94,7 +129,7 @@ export function related(item: Item, limit = 8): Item[] {
     .map((x) => x.o);
 }
 
-/** Stable hue for items/people without a configured colour. */
+/** Stable hue for things without a configured colour. */
 export function hueOf(seed: string): number {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -102,21 +137,19 @@ export function hueOf(seed: string): number {
 }
 
 export function itemHue(item: Item): number {
-  const g = item.en.genres.map(getGenre).find((x) => x?.en.hue != null);
-  const base = g?.en.hue ?? hueOf(item.slug);
+  const g = item.doc.genres.map((s) => getGenre(item.section, s)).find((x) => x?.doc.hue != null);
+  const base = g?.doc.hue ?? hueOf(item.slug);
   return (base + (hueOf(item.slug) % 40) - 20 + 360) % 360;
 }
 
-export function search(query: string, lang: Lang): Item[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  return allItems.filter((item) => {
-    const hay = [
-      item.en.title, item.ja.title, String(item.en.year),
-      ...creditsOf(item).flatMap((c) => { const p = getPerson(c.slug); return p ? [p.en.name, p.ja.name] : []; }),
-      ...item.en.genres.flatMap((g) => { const x = getGenre(g); return x ? [x.en.name, x.ja.name] : []; }),
-      item[lang].summary,
-    ].join(' ').toLowerCase();
-    return hay.includes(q);
-  });
+export const isFreeNow = (item: Item) => availabilityActive(item.doc.availability) && !!item.doc.availability?.free;
+export const isLimitedNow = (item: Item) => availabilityActive(item.doc.availability) && !!item.doc.availability?.limited_time;
+
+export function searchText(item: Item): string {
+  return [
+    item.en.title, item.ja.title, item.en.summary, item.ja.summary, String(item.en.year),
+    ...creditsOf(item).flatMap((c) => { const p = getPerson(c.slug); return p ? [p.en.name, p.ja.name] : []; }),
+    ...[...(item.doc.developers ?? []), ...(item.doc.publishers ?? [])].flatMap((s) => { const c = getCompany(s); return c ? [c.en.name, c.ja.name] : []; }),
+    ...item.doc.genres.flatMap((g) => { const x = getGenre(item.section, g); return x ? [x.en.name, x.ja.name] : []; }),
+  ].join(' ').toLowerCase();
 }

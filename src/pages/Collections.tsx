@@ -1,14 +1,16 @@
 import type { CSSProperties } from 'react';
 import { useParams } from 'react-router';
-import { getGenre, getPerson, hueOf, itemsFromCountry, itemsInGenre, worksOf } from '../data';
+import { getCompany, getGenre, getPerson, hueOf, itemsFromCountry, itemsInGenre, studioWorks, worksOf } from '../data';
 import { countryName, flag, useLang } from '../i18n';
 import { Avatar } from '../components/Chips';
 import { Grid } from '../components/Grid';
 import { usePageHue } from '../components/Layout';
+import { MEDIA, type Medium } from '../shared/schema';
 import type { Item } from '../types';
 import { NotFound } from './NotFound';
 
 const reveal = (i: number) => ({ '--i': i }) as CSSProperties;
+const ICON: Record<Medium, string> = { watch: '🎬', listen: '🎧', play: '🎮' };
 
 function Section({ title, items, instance, index }: { title: string; items: Item[]; instance: string; index: number }) {
   if (!items.length) return null;
@@ -21,24 +23,23 @@ function Section({ title, items, instance, index }: { title: string; items: Item
 }
 
 export function GenrePage() {
-  const { slug = '' } = useParams();
+  const { medium = '', slug = '' } = useParams();
   const { lang, t } = useLang();
-  const g = getGenre(slug);
-  const hue = g?.en.hue ?? hueOf(slug);
+  const m = medium as Medium;
+  const g = (MEDIA as string[]).includes(medium) ? getGenre(m, slug) : undefined;
+  const hue = g?.doc.hue ?? hueOf(slug);
   usePageHue(hue);
   if (!g) return <NotFound />;
-  const items = itemsInGenre(slug);
-  const watch = items.filter((i) => i.section === 'watch');
-  const listen = items.filter((i) => i.section === 'listen');
+  const items = itemsInGenre(m, slug);
+  const altName = g[lang === 'en' ? 'ja' : 'en'].name;
   return (
     <div className="page collection" style={{ '--h': hue } as CSSProperties}>
       <header className="page-head page-head--banner">
-        <p className="eyebrow reveal" style={reveal(0)}>{t.genre} · {t.recsCount(items.length)}</p>
+        <p className="eyebrow reveal" style={reveal(0)}>{ICON[m]} {t.sectionName[m]} · {t.genre} · {t.recsCount(items.length)}</p>
         <h1 className="page-title page-title--huge reveal" style={reveal(1)}><span className="hash">#</span>{g[lang].name}</h1>
-        {g.en.name !== g.ja.name && <p className="page-alt reveal" style={reveal(2)}>{g[lang === 'en' ? 'ja' : 'en'].name}</p>}
+        {altName !== g[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
       </header>
-      <Section title={`🎬 ${t.navWatch}`} items={watch} instance={`genre-${slug}-watch`} index={3} />
-      <Section title={`🎧 ${t.navListen}`} items={listen} instance={`genre-${slug}-listen`} index={4} />
+      <Grid items={items} instance={`genre-${m}-${slug}`} />
     </div>
   );
 }
@@ -49,22 +50,51 @@ export function PersonPage() {
   const p = getPerson(slug);
   usePageHue(hueOf(slug));
   if (!p) return <NotFound />;
-  const { directed, starred, recorded } = worksOf(slug);
-  const total = new Set([...directed, ...starred, ...recorded]).size;
+  const { directed, starred, recorded, created } = worksOf(slug);
+  const total = new Set([...directed, ...starred, ...recorded, ...created]).size;
+  if (!total) return <NotFound />;
   const altName = p[lang === 'en' ? 'ja' : 'en'].name;
   return (
     <div className="page collection" style={{ '--h': hueOf(slug) } as CSSProperties}>
-      <header className="page-head page-head--person">
-        <div className="reveal" style={reveal(0)}><Avatar slug={slug} size={112} /></div>
-        <div>
+      <header className={`page-head page-head--person ${p.doc.photo ? 'has-photo' : ''}`}>
+        <div className="person-photo reveal" style={reveal(0)}>
+          <Avatar slug={slug} size={p.doc.photo ? 168 : 112} />
+          {p.doc.photo_credit && <small className="photo-credit">{p.doc.photo_credit}</small>}
+        </div>
+        <div className="person-info">
           <p className="eyebrow reveal" style={reveal(1)}>{t.person} · {t.recsCount(total)}</p>
           <h1 className="page-title reveal" style={reveal(2)}>{p[lang].name}</h1>
           {altName !== p[lang].name && <p className="page-alt reveal" style={reveal(3)}>{altName}</p>}
+          {p[lang].bio && <p className="bio reveal" style={reveal(4)}>{p[lang].bio}</p>}
         </div>
       </header>
-      <Section title={`🎬 ${t.directed}`} items={directed} instance={`person-${slug}-dir`} index={4} />
-      <Section title={`⭐ ${t.actedIn}`} items={starred} instance={`person-${slug}-cast`} index={5} />
-      <Section title={`🎧 ${t.music}`} items={recorded} instance={`person-${slug}-music`} index={6} />
+      <Section title={`🎬 ${t.directed}`} items={directed} instance={`person-${slug}-dir`} index={5} />
+      <Section title={`⭐ ${t.actedIn}`} items={starred} instance={`person-${slug}-cast`} index={6} />
+      <Section title={`🎧 ${t.music}`} items={recorded} instance={`person-${slug}-music`} index={7} />
+      <Section title={`🎮 ${t.madeGames}`} items={created} instance={`person-${slug}-games`} index={8} />
+    </div>
+  );
+}
+
+export function StudioPage() {
+  const { slug = '' } = useParams();
+  const { lang, t } = useLang();
+  const c = getCompany(slug);
+  usePageHue(hueOf(slug));
+  if (!c) return <NotFound />;
+  const { developed, published } = studioWorks(slug);
+  const altName = c[lang === 'en' ? 'ja' : 'en'].name;
+  return (
+    <div className="page collection" style={{ '--h': hueOf(slug) } as CSSProperties}>
+      <header className="page-head page-head--banner">
+        <p className="eyebrow reveal" style={reveal(0)}>
+          {t.studio}{c.doc.country && <> · {flag(c.doc.country)} {countryName(c.doc.country, lang)}</>} · {t.recsCount(developed.length + published.length)}
+        </p>
+        <h1 className="page-title page-title--huge reveal" style={reveal(1)}>{c[lang].name}</h1>
+        {altName !== c[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
+      </header>
+      <Section title={`🛠 ${t.developed}`} items={developed} instance={`studio-${slug}-dev`} index={3} />
+      <Section title={`📦 ${t.published}`} items={published} instance={`studio-${slug}-pub`} index={4} />
     </div>
   );
 }

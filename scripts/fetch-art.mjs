@@ -1,93 +1,127 @@
-// Fills in official artwork for any entry that doesn't have it yet:
-//   • Films & TV  → poster + backdrop from TMDB (needs a free TMDB API key)
-//   • People in films/TV → profile photo from TMDB
-//   • Music       → cover art from Spotify (no key needed; needs a real open.spotify.com link)
+// Fills in official artwork in an ingest file before you upload it:
+//   • Films & TV → poster + backdrop from TMDB          (needs TMDB_API_KEY)
+//   • People     → headshot from TMDB                   (needs TMDB_API_KEY)
+//   • Games      → cover art from IGDB                   (needs TWITCH_CLIENT_ID + TWITCH_CLIENT_SECRET)
+//   • Music      → cover art from Spotify               (no key; needs a real open.spotify.com track/album link)
 //
-// Usage:  npm run fetch-art            (only fills blanks)
-//         npm run fetch-art -- --force (re-fetches everything)
+// Usage:  npm run fetch-art -- my-batch.json            (fills blanks, saves the file in place)
+//         npm run fetch-art -- my-batch.json --force    (re-fetches even where art exists)
 //
-// Put TMDB_API_KEY=... in a .env file (see .env.example).
-import { readCollection, setShared, writeEntry } from './lib.mjs';
+// Keys go in a .env file (see .env.example). Always review what it found before ingesting.
+import fs from 'node:fs';
 
-const force = process.argv.includes('--force');
-const TMDB_KEY = process.env.TMDB_API_KEY;
-const IMG = 'https://image.tmdb.org/t/p';
+const args = process.argv.slice(2);
+const path = args.find((a) => !a.startsWith('--'));
+const force = args.includes('--force');
+if (!path) {
+  console.error('Usage: npm run fetch-art -- <ingest-file.json> [--force]');
+  process.exit(1);
+}
+const file = JSON.parse(fs.readFileSync(path, 'utf8'));
+const { TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET } = process.env;
+const en = (v) => (typeof v === 'string' ? v : v?.en);
+const needs = (obj, ...keys) => force || keys.some((k) => !obj[k]);
+let changed = 0;
 
-async function tmdb(path, params = {}) {
-  const url = new URL(`https://api.themoviedb.org/3${path}`);
+// ── TMDB ──
+const TMDB_IMG = 'https://image.tmdb.org/t/p';
+async function tmdb(p, params = {}) {
+  const url = new URL(`https://api.themoviedb.org/3${p}`);
   for (const [k, v] of Object.entries(params)) if (v != null) url.searchParams.set(k, String(v));
   const headers = { accept: 'application/json' };
-  // Accept either a v3 API key or a v4 "read access token".
-  if (TMDB_KEY.startsWith('eyJ')) headers.authorization = `Bearer ${TMDB_KEY}`;
-  else url.searchParams.set('api_key', TMDB_KEY);
+  // Accept either a v3 API key or a v4 read access token.
+  if (TMDB_API_KEY.startsWith('eyJ')) headers.authorization = `Bearer ${TMDB_API_KEY}`;
+  else url.searchParams.set('api_key', TMDB_API_KEY);
   const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
+  if (!res.ok) throw new Error(`TMDB ${res.status}`);
   return res.json();
 }
 
-async function findTitle(en) {
-  const type = en.kind === 'tv' ? 'tv' : 'movie';
-  if (en.tmdb_id) return { type, id: en.tmdb_id };
-  const yearParam = type === 'tv' ? { first_air_date_year: en.year } : { primary_release_year: en.year };
-  let { results } = await tmdb(`/search/${type}`, { query: en.title, ...yearParam });
-  if (!results.length) ({ results } = await tmdb(`/search/${type}`, { query: en.title }));
-  return results[0] ? { type, id: results[0].id } : null;
-}
-
 async function titles() {
-  if (!TMDB_KEY) return console.log('• Skipping films/TV and people: set TMDB_API_KEY in .env (free at themoviedb.org → Settings → API).');
-  const credited = new Set();
-  for (const e of readCollection('titles')) {
-    const en = e.data.en;
-    [...(en.directors ?? []), ...(en.cast ?? [])].forEach((p) => credited.add(p));
-    if (!force && en.poster && en.backdrop) continue;
+  const list = (file.items ?? []).filter((i) => (i.kind === 'film' || i.kind === 'tv') && needs(i, 'poster', 'backdrop'));
+  if (!list.length) return;
+  if (!TMDB_API_KEY) return console.log('• Skipping films/TV: set TMDB_API_KEY in .env (free at themoviedb.org → Settings → API).');
+  for (const item of list) {
+    const type = item.kind === 'tv' ? 'tv' : 'movie';
     try {
-      const hit = await findTitle(en);
-      if (!hit) { console.log(`  ? ${e.slug}: not found on TMDB — add its tmdb_id in the CMS`); continue; }
-      const details = await tmdb(`/${hit.type}/${hit.id}`);
-      if (details.poster_path && (force || !en.poster)) setShared(e.data, 'poster', `${IMG}/w780${details.poster_path}`);
-      if (details.backdrop_path && (force || !en.backdrop)) setShared(e.data, 'backdrop', `${IMG}/w1280${details.backdrop_path}`);
-      if (!en.tmdb_id) setShared(e.data, 'tmdb_id', String(hit.id));
-      writeEntry(e.file, e.data);
-      console.log(`  ✓ ${e.slug} (${details.title ?? details.name})`);
-    } catch (err) { console.log(`  ✗ ${e.slug}: ${err.message}`); }
-  }
-
-  for (const e of readCollection('people')) {
-    if (!credited.has(e.slug) || (!force && e.data.en.photo)) continue;
-    try {
-      const { results } = await tmdb('/search/person', { query: e.data.en.name });
-      const p = results.find((r) => r.profile_path);
-      if (!p) continue;
-      setShared(e.data, 'photo', `${IMG}/w185${p.profile_path}`);
-      writeEntry(e.file, e.data);
-      console.log(`  ✓ ${e.slug}`);
-    } catch (err) { console.log(`  ✗ ${e.slug}: ${err.message}`); }
+      let id = item.tmdb_id;
+      if (!id) {
+        const yearKey = type === 'tv' ? 'first_air_date_year' : 'primary_release_year';
+        let { results } = await tmdb(`/search/${type}`, { query: en(item.title), [yearKey]: item.year });
+        if (!results.length) ({ results } = await tmdb(`/search/${type}`, { query: en(item.title) }));
+        id = results[0]?.id;
+      }
+      if (!id) { console.log(`  ? ${en(item.title)}: not found on TMDB — add "tmdb_id"`); continue; }
+      const d = await tmdb(`/${type}/${id}`);
+      if (d.poster_path && (force || !item.poster)) item.poster = `${TMDB_IMG}/w780${d.poster_path}`;
+      if (d.backdrop_path && (force || !item.backdrop)) item.backdrop = `${TMDB_IMG}/w1280${d.backdrop_path}`;
+      item.tmdb_id ??= String(id);
+      changed++;
+      console.log(`  ✓ ${en(item.title)} → ${d.title ?? d.name} (${(d.release_date ?? d.first_air_date ?? '').slice(0, 4)})`);
+    } catch (e) { console.log(`  ✗ ${en(item.title)}: ${e.message}`); }
   }
 }
 
+async function people() {
+  const list = (file.people ?? []).filter((p) => needs(p, 'photo'));
+  if (!list.length || !TMDB_API_KEY) return;
+  for (const person of list) {
+    try {
+      const { results } = await tmdb('/search/person', { query: en(person.name) });
+      const hit = results.find((r) => r.profile_path);
+      if (!hit) { console.log(`  ? ${en(person.name)}: no TMDB photo — add one by hand (e.g. Wikimedia Commons, with photo_credit)`); continue; }
+      person.photo = `${TMDB_IMG}/w342${hit.profile_path}`;
+      changed++;
+      console.log(`  ✓ ${en(person.name)} → ${hit.name} (known for ${hit.known_for_department})`);
+    } catch (e) { console.log(`  ✗ ${en(person.name)}: ${e.message}`); }
+  }
+}
+
+// ── IGDB (via Twitch) ──
+async function games() {
+  const list = (file.items ?? []).filter((i) => i.kind === 'game' && needs(i, 'cover'));
+  if (!list.length) return;
+  if (!TWITCH_CLIENT_ID || !TWITCH_CLIENT_SECRET) return console.log('• Skipping games: set TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET in .env (free at dev.twitch.tv → register an app).');
+  const tok = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TWITCH_CLIENT_ID}&client_secret=${TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, { method: 'POST' }).then((r) => r.json());
+  if (!tok.access_token) return console.log('  ✗ Could not get an IGDB token — check the Twitch credentials.');
+  for (const game of list) {
+    const query = game.igdb_id
+      ? `fields name,cover.image_id,first_release_date; where id = ${Number(game.igdb_id)};`
+      : `search "${en(game.title).replace(/"/g, '')}"; fields name,cover.image_id,first_release_date; limit 5;`;
+    try {
+      const res = await fetch('https://api.igdb.com/v4/games', { method: 'POST', headers: { 'Client-ID': TWITCH_CLIENT_ID, Authorization: `Bearer ${tok.access_token}` }, body: query });
+      if (!res.ok) throw new Error(`IGDB ${res.status}`);
+      const results = await res.json();
+      const year = Number(String(game.release_us ?? game.release_jp ?? '').slice(0, 4));
+      const hit = results.find((r) => r.cover && year && new Date(r.first_release_date * 1000).getUTCFullYear() === year) ?? results.find((r) => r.cover);
+      if (!hit) { console.log(`  ? ${en(game.title)}: not found on IGDB — add "igdb_id"`); continue; }
+      game.cover = `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${hit.cover.image_id}.jpg`;
+      game.igdb_id ??= String(hit.id);
+      changed++;
+      console.log(`  ✓ ${en(game.title)} → ${hit.name}`);
+    } catch (e) { console.log(`  ✗ ${en(game.title)}: ${e.message}`); }
+  }
+}
+
+// ── Spotify ──
 async function music() {
-  for (const e of readCollection('music')) {
-    const en = e.data.en;
-    if (!force && en.cover) continue;
-    if (!/^https:\/\/open\.spotify\.com\/(intl-[a-z]+\/)?(track|album)\//.test(en.spotify_url ?? '')) {
-      console.log(`  ? ${e.slug}: needs a Spotify track/album link (Share → Copy link) to fetch its cover`);
+  for (const m of (file.items ?? []).filter((i) => (i.kind === 'song' || i.kind === 'album') && needs(i, 'cover'))) {
+    if (!/^https:\/\/open\.spotify\.com\/(intl-[a-z]+\/)?(track|album)\//.test(m.spotify_url ?? '')) {
+      console.log(`  ? ${en(m.title)}: needs a Spotify track/album link (Share → Copy link) to fetch its cover`);
       continue;
     }
     try {
-      const res = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(en.spotify_url)}`);
+      const res = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(m.spotify_url)}`);
       if (!res.ok) throw new Error(`Spotify ${res.status}`);
       const { thumbnail_url } = await res.json();
-      if (!thumbnail_url) continue;
-      setShared(e.data, 'cover', thumbnail_url);
-      writeEntry(e.file, e.data);
-      console.log(`  ✓ ${e.slug}`);
-    } catch (err) { console.log(`  ✗ ${e.slug}: ${err.message}`); }
+      if (thumbnail_url) { m.cover = thumbnail_url; changed++; console.log(`  ✓ ${en(m.title)}`); }
+    } catch (e) { console.log(`  ✗ ${en(m.title)}: ${e.message}`); }
   }
 }
 
-console.log('Films, TV & people (TMDB)…');
-await titles();
-console.log('Music (Spotify)…');
-await music();
-console.log('Done. Review the changes, then commit them.');
+console.log('Films & TV…'); await titles();
+console.log('People…'); await people();
+console.log('Games…'); await games();
+console.log('Music…'); await music();
+fs.writeFileSync(path, JSON.stringify(file, null, 2) + '\n');
+console.log(`Done — ${changed} update(s) saved to ${path}. Check the matches above, then upload it in /admin → Batch ingest.`);

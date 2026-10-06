@@ -1,10 +1,29 @@
-// Cloudflare Workers (static assets) — the recommended host. See README → Deploying.
+// Cloudflare Worker: serves the site (static assets) and the /api backend (D1 database).
+// See README → "Deploying" for the one-time setup.
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "for-your-consideration",
+  "main": "./worker/index.ts",
   "compatibility_date": "2025-09-01",
   "assets": {
-    "directory": "./dist",
-    // Serve index.html for client-side routes like /title/past-lives
-    "not_found_handling": "single-page-application"
-  }
+    // Client-side routes like /title/past-lives fall back to index.html.
+    "not_found_handling": "single-page-application",
+    // Only API requests reach the Worker; everything else is served straight from the CDN.
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fyc",
+      // Replace with the id printed by `npx wrangler d1 create fyc`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Cloudflare Access (Zero Trust) settings for the /admin login. See README.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  },
+  "observability": { "enabled": true }
 }
