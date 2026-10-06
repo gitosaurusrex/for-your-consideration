@@ -4,7 +4,7 @@ import { isLang, LANG_INFO } from './shared/schema';
 import type { Lang } from './types';
 
 const en = {
-  siteName: 'For Your Consideration',
+  siteName: 'The Stacks',
   tagline: 'Hand-picked films, shows, music & games',
   navHome: 'Home',
   navWatch: 'Watch',
@@ -103,7 +103,7 @@ export type Strings = typeof en;
 const strings: Record<Lang, Strings> = {
   en,
   ja: {
-    siteName: 'For Your Consideration',
+    siteName: 'The Stacks',
     tagline: '厳選した映画・ドラマ・音楽・ゲーム',
     navHome: 'ホーム',
     navWatch: '観る',
@@ -196,7 +196,7 @@ const strings: Record<Lang, Strings> = {
     autoTranslated: '自動翻訳',
   },
   th: {
-    siteName: 'For Your Consideration',
+    siteName: 'The Stacks',
     tagline: 'ภาพยนตร์ ซีรีส์ เพลง และเกม ที่คัดสรรมาอย่างดี',
     navHome: 'หน้าแรก',
     navWatch: 'ดู',
@@ -289,7 +289,7 @@ const strings: Record<Lang, Strings> = {
     autoTranslated: 'แปลโดยอัตโนมัติ',
   },
   es: {
-    siteName: 'For Your Consideration',
+    siteName: 'The Stacks',
     tagline: 'Películas, series, música y juegos elegidos a mano',
     navHome: 'Inicio',
     navWatch: 'Ver',

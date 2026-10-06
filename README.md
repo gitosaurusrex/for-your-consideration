@@ -1,6 +1,6 @@
-# For Your Consideration
+# The Stacks
 
-A hand-curated recommendations site for **films, TV, music and games**, written for a friend in **English, 日本語, ไทย and Español**.
+A hand-curated library of **films, TV, music and games** for everyone who visits, in **English, 日本語, ไทย and Español**.
 
 - Official artwork, spoiler-free summaries, and the date each item was added
 - **Film & TV**:
@@ -94,7 +94,7 @@ If a build fails on the migrations step with a permissions error, set the deploy
 
 #### Using R2 instead of KV
 
-KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a personal catalog. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and run `npm run deploy` (it rebuilds, which picks up the change). Images already in KV aren't moved automatically.
+KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a catalog like this. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and run `npm run deploy` (it rebuilds, which picks up the change). Images already in KV aren't moved automatically.
 
 ### 2. Set the admin password
 

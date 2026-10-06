@@ -55,7 +55,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!data) return <div className="boot"><span className="boot__mark">FYC</span><span className="boot__msg">Loading admin…</span></div>;
+  if (!data) return <div className="boot"><span className="boot__mark">TS</span><span className="boot__msg">Loading admin…</span></div>;
 
   return (
     <Ctx.Provider value={{ data, email, reload, toast }}>
