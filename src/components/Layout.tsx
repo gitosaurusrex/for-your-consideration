@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { enabledMedia } from '../data';
 import { useLang } from '../i18n';
@@ -73,11 +73,25 @@ function useScrolled() {
   return scrolled;
 }
 
+/** Publishes the header's height as --header-h, so page backdrops can reach up behind it. */
+function useHeaderHeight() {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const header = ref.current;
+    if (!header) return;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--header-h', `${header.offsetHeight}px`));
+    ro.observe(header);
+    return () => ro.disconnect();
+  }, []);
+  return ref;
+}
+
 export function Layout() {
   const { t } = useLang();
   const { pathname } = useLocation();
   usePeriod(); // keeps the time-of-day palette current
   const scrolled = useScrolled();
+  const headerRef = useHeaderHeight();
   return (
     <>
       <a href="#main" className="skip-link">{t.skip}</a>
@@ -87,7 +101,7 @@ export function Layout() {
         <span className="ambient__blob ambient__blob--c" />
       </div>
       <div className="grain" aria-hidden />
-      <header className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
+      <header ref={headerRef} className={`site-header ${scrolled ? 'is-scrolled' : ''}`}>
         <VLink to="/" className="logo" aria-label={t.siteName}>
           <span className="logo__mark" aria-hidden>
             <span>F</span><span>Y</span><span>C</span>
