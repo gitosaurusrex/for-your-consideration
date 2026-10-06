@@ -16,13 +16,13 @@
       "binding": "DB",
       "database_name": "fyc",
       // Replace with the id printed by `npx wrangler d1 create fyc`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "2bcdc1fe-a7fa-41a3-b991-6224f9204a49",
       "migrations_dir": "migrations"
     }
   ],
   // Uploaded and copied artwork, in Workers KV (free, no payment method needed).
   // Replace the id with the one printed by `npx wrangler kv namespace create fyc-media`.
-  "kv_namespaces": [{ "binding": "MEDIA_KV", "id": "00000000000000000000000000000000" }],
+  "kv_namespaces": [{ "binding": "MEDIA_KV", "id": "e3d2c1e052d3486290f6935a461fc08f" }],
   // Or use R2 instead (needs R2 enabled in the dashboard, which asks for a payment method):
   // create it with `npx wrangler r2 bucket create fyc-media`, then uncomment this line.
   // When both are set, R2 is used.
