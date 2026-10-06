@@ -332,13 +332,21 @@ p { margin: 0; }
 }
 .hero__greeting {
   font-family: var(--font-display); font-weight: 900; font-style: italic;
-  font-size: clamp(48px, 8.5vw, 108px); line-height: 0.98; letter-spacing: -0.03em; margin: 10px 0 22px;
+  /* --fit (set by the Greeting component) shrinks long greetings so they fit without awkward breaks. */
+  font-size: calc(clamp(48px, 8.5vw, 108px) * var(--fit, 1)); line-height: 0.98; letter-spacing: -0.03em;
+  /* Bottom padding so the gradient (clipped to the text) also covers descenders like g and y. */
+  margin: 10px 0 calc(22px - 0.14em); padding-bottom: 0.14em;
   background: linear-gradient(100deg, var(--greeting-from) 10%, var(--accent-2) 45%, var(--accent) 70%, var(--accent-3));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 :lang(ja) .hero__greeting { font-style: normal; letter-spacing: 0.02em; }
 .wave { display: inline-block; animation: wave 0.9s var(--ease-spring) backwards; animation-delay: calc(var(--c) * 45ms + 250ms); background: inherit; -webkit-background-clip: text; background-clip: text; }
 .hero__greeting .wave { background: none; color: inherit; }
+.greeting__word { white-space: nowrap; }
+.hero__greeting.is-measuring { white-space: nowrap; }
+/* Never transition the greeting's size: Greeting measures it right after changing --fit
+   (the reduced-motion rule below would otherwise make every change a tiny transition). */
+.hero__greeting, .hero__greeting * { transition: none !important; }
 @keyframes wave { from { transform: translateY(0.5em) rotate(8deg); opacity: 0; } }
 .hero__intro { font-size: clamp(17px, 1.9vw, 21px); color: var(--text-soft); max-width: 34em; text-wrap: pretty; }
 .hero__signoff { font-family: var(--font-hand); font-size: 26px; color: var(--accent-2); margin-top: 14px; transform: rotate(-2deg); transform-origin: left; }
