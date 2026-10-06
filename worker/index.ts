@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile } from '../src/shared/ingest';
-import { ENTITY_TYPES, IMAGE_FIELDS, isStoredImage, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type SiteSettings } from '../src/shared/schema';
+import { ENTITY_TYPES, IMAGE_FIELDS, isStoredImage, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type PersonDoc, type SiteSettings } from '../src/shared/schema';
 import { normalize, referencesOf } from '../src/shared/validate';
-import { ArtError, artStatus, findArt } from './art';
+import { ArtError, artStatus, fillPerson, findArt, type Credit } from './art';
 import { login, logout, requireAdmin } from './auth';
 import { getEntity, getSettings, loadAll, putSetting, upsert } from './db';
 import type { AppEnv } from './env';
@@ -256,6 +256,50 @@ admin.post('/media/mirror', async (c) => {
 });
 
 admin.get('/art/status', (c) => c.json(artStatus(c.env)));
+
+/** Someone needs filling when they have no photo or no bio (in either language). */
+const needsFill = (p: PersonDoc) => !p.photo || !(p.bio?.en || p.bio?.ja);
+
+/**
+ * Fill in missing headshots and bios from TMDB for a few people at a time (called repeatedly by the
+ * Dashboard). Only empty fields are filled, and only when TMDB's credits confirm it's the same person.
+ */
+admin.post('/people/fill', async (c) => {
+  const { limit = 4, skip = [] } = (await c.req.json().catch(() => ({}))) as { limit?: number; skip?: string[] };
+  const [all, settings] = await Promise.all([loadAll(c.env.DB), getSettings(c.env.DB)]);
+  const credits = new Map<string, Credit[]>();
+  for (const item of all.item.values() as Iterable<ItemDoc>) {
+    for (const field of ['directors', 'cast', 'artists', 'creators'] as const) {
+      for (const id of (item[field] as string[] | undefined) ?? []) {
+        const list = credits.get(id) ?? [];
+        list.push({ title: item.title?.en ?? '', tmdb_id: item.tmdb_id, kind: item.kind });
+        credits.set(id, list);
+      }
+    }
+  }
+  const jobs = ([...all.person.values()] as PersonDoc[]).filter((p) => needsFill(p) && !skip.includes(p.id));
+  // Each person can take up to five TMDB calls, plus an image copy; four per request stays well under Workers' limits.
+  const batch = jobs.slice(0, Math.min(Math.max(1, limit), 4));
+  const filled: { id: string; label: string; got: string[] }[] = [];
+  const failed: { id: string; label: string; error: string }[] = [];
+  const updated: PersonDoc[] = [];
+  for (const p of batch) {
+    const label = p.name?.en ?? p.id;
+    try {
+      const found = await fillPerson(c.env, p, credits.get(p.id) ?? []);
+      if (typeof found.photo === 'string' && settings.keepCopies) {
+        try { found.photo = await importImage(c.env, found.photo); } catch { /* keep the TMDB link */ }
+      }
+      updated.push({ ...p, ...found } as PersonDoc);
+      filled.push({ id: p.id, label, got: ['photo', 'bio'].filter((k) => k in found) });
+    } catch (e) {
+      if (!(e instanceof ArtError) && !(e instanceof MediaError)) throw e;
+      failed.push({ id: p.id, label, error: e.message });
+    }
+  }
+  if (updated.length) await c.env.DB.batch(updated.map((p) => upsert(c.env.DB, 'person', p)));
+  return c.json({ filled, failed, remaining: jobs.length - batch.length });
+});
 
 /** Look up official artwork for a record (TMDB for films/TV/people, IGDB for games, Spotify for music). */
 admin.post('/art/search', async (c) => {
