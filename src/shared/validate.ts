@@ -1,5 +1,5 @@
 import {
-  fieldsFor, isDate, isHttpUrl, KIND_MEDIUM, PLATFORMS, slugify, genreKey,
+  fieldsFor, isDate, isHttpUrl, MEDIA_PREFIX, KIND_MEDIUM, PLATFORMS, slugify, genreKey,
   type AnyDoc, type EntityType, type FieldSpec, type I18n, type ItemKind, type Medium,
 } from './schema';
 
@@ -148,6 +148,16 @@ function readField(spec: FieldSpec, v: unknown, errors: string[], warnings: stri
       const s = asString(v);
       if (s === undefined) return undefined;
       if (!isHttpUrl(s)) { errors.push(`${where} "${s}" is not a full https:// link`); return undefined; }
+      return s;
+    }
+    case 'image': {
+      const s = asString(v);
+      if (s === undefined) return undefined;
+      if (s.startsWith(MEDIA_PREFIX)) {
+        if (!/^\/media\/[a-z0-9]+\.(jpg|png|webp|gif|avif)$/.test(s)) { errors.push(`${where} "${s}" is not a valid stored image`); return undefined; }
+        return s;
+      }
+      if (!isHttpUrl(s)) { errors.push(`${where} "${s}" should be a full https:// image link (or upload one in the admin)`); return undefined; }
       return s;
     }
     case 'bool': {

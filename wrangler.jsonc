@@ -8,8 +8,8 @@
   "assets": {
     // Client-side routes like /title/past-lives fall back to index.html.
     "not_found_handling": "single-page-application",
-    // Only API requests reach the Worker; everything else is served straight from the CDN.
-    "run_worker_first": ["/api/*"]
+    // Only API and stored-image requests reach the Worker; everything else is served straight from the CDN.
+    "run_worker_first": ["/api/*", "/media/*"]
   },
   "d1_databases": [
     {
@@ -20,6 +20,10 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Uploaded and copied artwork. Create it once with `npx wrangler r2 bucket create fyc-media`.
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "fyc-media" }],
+  // Secrets for "Find art" (set with `npx wrangler secret put NAME`, never in this file):
+  //   TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET
   "vars": {
     // Cloudflare Access (Zero Trust) settings for the /admin login. See README.
     "ACCESS_TEAM_DOMAIN": "",

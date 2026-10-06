@@ -25,6 +25,7 @@ Items point at genres, studios and people **by id**. Those records can be in the
 | **Dates** | `YYYY-MM-DD` |
 | **Countries** | 2-letter codes: `US`, `JP`, `GB`, `KR`, `FR`… Names are translated automatically on the site. |
 | **Links** | full `https://` URLs |
+| **Images** | a full `https://` image link, or a `/media/…` path for an image already stored on the site (e.g. from an export). With "Keep a copy of artwork" on, linked images are downloaded into the site's storage right after the ingest. |
 
 ## items
 

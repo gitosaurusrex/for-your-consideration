@@ -4,6 +4,7 @@ import { MEDIA, type I18n, type Medium, type SiteSettings } from '../shared/sche
 import { api, type IngestListRow } from './api';
 import { useAction, useAdmin } from './context';
 import { I18nInput } from './fields';
+import { countLinked, MirrorProgress, useMirror } from './mirror';
 
 const MEDIUM_UI: Record<Medium, { icon: string; label: string }> = {
   watch: { icon: '🎬', label: 'Film & TV' },
@@ -16,7 +17,13 @@ export function Dashboard() {
   const run = useAction();
   const [ingests, setIngests] = useState<IngestListRow[]>([]);
   const [text, setText] = useState<SiteSettings['text']>(data.settings.text);
-  useEffect(() => { api.ingests().then(setIngests).catch(() => {}); }, []);
+  const [art, setArt] = useState<{ tmdb: boolean; igdb: boolean } | null>(null);
+  const mirror = useMirror();
+  const images = countLinked([...data.items, ...data.people, ...data.companies]);
+  useEffect(() => {
+    api.ingests().then(setIngests).catch(() => {});
+    api.artStatus().then(setArt).catch(() => {});
+  }, []);
 
   const toggle = async (m: Medium) => {
     const on = !data.settings.media[m];
@@ -59,6 +66,36 @@ export function Dashboard() {
           {data.people.length} people · {data.companies.length} studios · {data.genres.length} genres —{' '}
           <Link to="/admin/items">manage items</Link>
         </p>
+      </section>
+
+      <section className="panel">
+        <h2>Images</h2>
+        <div className="media-switch is-flat">
+          <div>
+            <strong>Keep a copy of artwork on this site</strong>
+            <div className="muted small">
+              Artwork you pick with “Find art”, and artwork linked in ingested files, is downloaded into your own storage,
+              so it keeps working even if the source changes. Uploads are always stored.
+            </div>
+          </div>
+          <button role="switch" aria-checked={data.settings.keepCopies} aria-label="Keep a copy of artwork" className="switch"
+            onClick={async () => { if (await run(() => api.settings({ keepCopies: !data.settings.keepCopies }), 'Saved')) await reload(); }}>
+            <span className="switch__thumb" />
+          </button>
+        </div>
+        <p className="small">
+          <b>{images.stored}</b> image{images.stored === 1 ? '' : 's'} stored on your site · <b>{images.linked}</b> linked from other sites
+          {images.linked > 0 && !mirror.running && (
+            <> — <button className="link-button" onClick={() => mirror.run(images.linked)}>copy {images.linked === 1 ? 'it' : `all ${images.linked}`} now</button></>
+          )}
+        </p>
+        <MirrorProgress {...mirror} />
+        {art && (
+          <p className="muted small">
+            “Find art” sources: TMDB (films, TV, people) {art.tmdb ? '✓' : '✗ not set up'} · IGDB (games) {art.igdb ? '✓' : '✗ not set up'} · Spotify (music) ✓ always
+            {(!art.tmdb || !art.igdb) && <> — see README → Artwork for the free keys.</>}
+          </p>
+        )}
       </section>
 
       <section className="panel">

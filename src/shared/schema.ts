@@ -72,11 +72,14 @@ export type AnyDoc = ItemDoc | PersonDoc | CompanyDoc | GenreDoc;
 
 export interface SiteSettings {
   media: Record<Medium, boolean>;
+  /** Save a copy of fetched/linked artwork in the site's own storage instead of linking to the source. */
+  keepCopies: boolean;
   text: { greeting: I18n; intro: I18n; signoff: I18n };
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   media: { watch: true, listen: true, play: true },
+  keepCopies: true,
   text: {
     greeting: { en: 'Hello, friend!', ja: 'やっほー！' },
     intro: {
@@ -109,7 +112,7 @@ export const SELECT_KINDS = [
 // ───────────────────────────── Field specs ─────────────────────────────
 
 export type FieldType =
-  | 'id' | 'text' | 'textarea' | 'number' | 'date' | 'url' | 'bool'
+  | 'id' | 'text' | 'textarea' | 'number' | 'date' | 'url' | 'image' | 'bool'
   | 'select' | 'countries' | 'country' | 'platforms' | 'refs' | 'availability';
 
 export interface FieldSpec {
@@ -149,8 +152,8 @@ export const ITEM_FIELDS: Record<Medium, FieldSpec[]> = {
     f('directors', 'Director(s) — creator(s) for TV', 'refs', { to: 'person', required: true }),
     f('cast', 'Top-billed cast', 'refs', { to: 'person' }),
     f('runtime', 'Runtime (minutes, films)', 'number', { min: 1, max: 1000 }),
-    f('poster', 'Poster URL (official art)', 'url'),
-    f('backdrop', 'Backdrop URL (wide still)', 'url'),
+    f('poster', 'Poster (official art)', 'image'),
+    f('backdrop', 'Backdrop (wide still)', 'image'),
     f('watch_service', 'Where to watch (e.g. Netflix)', 'text'),
     f('watch_url', 'Watch link', 'url'),
     f('availability', 'Availability', 'availability', { hint: 'Free and/or only available for a limited time.' }),
@@ -164,7 +167,7 @@ export const ITEM_FIELDS: Record<Medium, FieldSpec[]> = {
     f('album', 'From the album (songs)', 'text', { i18n: true }),
     f('year', 'Release year', 'number', { required: true, min: 1880, max: 2100 }),
     f('countries', 'Release countries', 'countries'),
-    f('cover', 'Cover art URL', 'url'),
+    f('cover', 'Cover art', 'image'),
     f('spotify_url', 'Spotify link', 'url'),
     f('video_url', 'Music video link', 'url'),
     ...ITEM_TAIL,
@@ -177,7 +180,7 @@ export const ITEM_FIELDS: Record<Medium, FieldSpec[]> = {
     f('developers', 'Developer(s)', 'refs', { to: 'company', required: true }),
     f('publishers', 'Publisher(s)', 'refs', { to: 'company' }),
     f('creators', 'Notable creators', 'refs', { to: 'person', hint: 'e.g. Hideo Kojima — each gets a page with their other games.' }),
-    f('cover', 'Cover art URL', 'url'),
+    f('cover', 'Cover art', 'image'),
     f('igdb_id', 'IGDB ID', 'text'),
     ...ITEM_TAIL,
   ],
@@ -188,14 +191,14 @@ export const ENTITY_FIELDS: Record<Exclude<EntityType, 'item'>, FieldSpec[]> = {
     f('id', 'ID (URL slug)', 'id', { hint: 'Leave blank to generate from the English name.' }),
     f('name', 'Name', 'text', { i18n: true, required: true, hint: '日本語: the name as written in Japan (e.g. ドゥニ・ヴィルヌーヴ, 小島秀夫).' }),
     f('bio', 'Short bio', 'textarea', { i18n: true }),
-    f('photo', 'Headshot URL', 'url'),
+    f('photo', 'Headshot', 'image'),
     f('photo_credit', 'Photo credit', 'text', { hint: 'Required for Wikimedia Commons photos, e.g. "Photo: Jane Doe, CC BY-SA 4.0".' }),
   ],
   company: [
     f('id', 'ID (URL slug)', 'id', { hint: 'Leave blank to generate from the English name.' }),
     f('name', 'Name', 'text', { i18n: true, required: true }),
     f('country', 'Country', 'country'),
-    f('logo', 'Logo URL', 'url'),
+    f('logo', 'Logo', 'image'),
   ],
   genre: [
     f('medium', 'Section', 'select', { required: true, options: [{ value: 'watch', label: 'Film & TV' }, { value: 'listen', label: 'Music' }, { value: 'play', label: 'Games' }] }),
@@ -233,6 +236,11 @@ export function isDate(s: string) {
   const d = new Date(`${s}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(s);
 }
+
+/** Images stored in the site's own storage are served from /media/<file>. */
+export const MEDIA_PREFIX = '/media/';
+export const isStoredImage = (s: string | undefined) => !!s && s.startsWith(MEDIA_PREFIX);
+export const IMAGE_FIELDS = ['poster', 'backdrop', 'cover', 'photo', 'logo'] as const;
 
 export function isHttpUrl(s: string) {
   try {

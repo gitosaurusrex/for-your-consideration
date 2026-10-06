@@ -109,6 +109,9 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
             value={form[spec.key]}
             locked={!isNew && (spec.type === 'id' || (type === 'genre' && spec.key === 'medium'))}
             onChange={(v) => setForm((f) => ({ ...f!, [spec.key]: v }))}
+            entityType={type}
+            form={form}
+            setFields={(patch) => setForm((f) => ({ ...f!, ...patch }))}
           />
         ))}
         <div className="form__bar">

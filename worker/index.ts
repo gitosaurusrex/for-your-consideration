@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile } from '../src/shared/ingest';
-import { ENTITY_TYPES, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type SiteSettings } from '../src/shared/schema';
+import { ENTITY_TYPES, IMAGE_FIELDS, isStoredImage, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type SiteSettings } from '../src/shared/schema';
 import { normalize, referencesOf } from '../src/shared/validate';
+import { ArtError, artStatus, findArt } from './art';
 import { requireAdmin } from './auth';
 import { getEntity, getSettings, loadAll, putSetting, upsert } from './db';
 import type { AppEnv } from './env';
+import { importImage, MediaError, serveImage, storeImage } from './media';
 
 const app = new Hono<AppEnv>().basePath('/api');
 
@@ -130,6 +132,7 @@ admin.put('/settings', async (c) => {
     for (const m of MEDIA) if (typeof body.media[m] === 'boolean') media[m] = body.media[m];
     stmts.push(putSetting(c.env.DB, 'media', media));
   }
+  if (typeof body.keepCopies === 'boolean') stmts.push(putSetting(c.env.DB, 'keepCopies', body.keepCopies));
   if (body.text) {
     const text = { ...current.text };
     for (const k of Object.keys(text) as (keyof SiteSettings['text'])[]) {
@@ -192,7 +195,79 @@ admin.get('/export', async (c) => {
   return c.json(file);
 });
 
+// ── Images ──
+
+const mediaError = (e: unknown) => {
+  if (e instanceof MediaError || e instanceof ArtError) return { error: e.message };
+  throw e;
+};
+
+/** Upload: the request body is the image file itself. */
+admin.post('/media', async (c) => {
+  try {
+    const url = await storeImage(c.env, new Uint8Array(await c.req.arrayBuffer()));
+    return c.json({ url });
+  } catch (e) { return c.json(mediaError(e), 400); }
+});
+
+/** Copy an image from another site into storage. */
+admin.post('/media/import', async (c) => {
+  const { url } = (await c.req.json()) as { url?: string };
+  try {
+    return c.json({ url: await importImage(c.env, String(url ?? '')) });
+  } catch (e) { return c.json(mediaError(e), 400); }
+});
+
+/**
+ * Copy a few externally-linked images into storage and point the records at the copies.
+ * Called repeatedly by the admin (small batches keep each request well inside Worker limits).
+ */
+admin.post('/media/mirror', async (c) => {
+  const { limit = 6, skip = [] } = (await c.req.json().catch(() => ({}))) as { limit?: number; skip?: string[] };
+  const all = await loadAll(c.env.DB);
+  const jobs: { type: EntityType; doc: AnyDoc; field: string; url: string }[] = [];
+  for (const type of ['item', 'person', 'company'] as const)
+    for (const doc of all[type].values())
+      for (const field of IMAGE_FIELDS) {
+        const url = (doc as unknown as Record<string, string | undefined>)[field];
+        if (url && !isStoredImage(url) && !skip.includes(url)) jobs.push({ type, doc, field, url });
+      }
+
+  const batch = jobs.slice(0, Math.min(Math.max(1, limit), 10));
+  const updated = new Map<string, { type: EntityType; doc: Record<string, unknown> }>();
+  const failed: { label: string; field: string; url: string; error: string }[] = [];
+  for (const job of batch) {
+    try {
+      const stored = await importImage(c.env, job.url);
+      const key = `${job.type}:${job.doc.id}`;
+      const entry = updated.get(key) ?? { type: job.type, doc: { ...job.doc } as Record<string, unknown> };
+      entry.doc[job.field] = stored;
+      updated.set(key, entry);
+    } catch (e) {
+      const label = (job.doc as { title?: I18n; name?: I18n }).title?.en ?? (job.doc as { name?: I18n }).name?.en ?? job.doc.id;
+      failed.push({ label, field: job.field, url: job.url, error: e instanceof Error ? e.message : 'failed' });
+    }
+  }
+  if (updated.size) await c.env.DB.batch([...updated.values()].map((u) => upsert(c.env.DB, u.type, u.doc as unknown as AnyDoc)));
+  return c.json({ copied: batch.length - failed.length, failed, remaining: jobs.length - batch.length });
+});
+
+admin.get('/art/status', (c) => c.json(artStatus(c.env)));
+
+/** Look up official artwork for a record (TMDB for films/TV/people, IGDB for games, Spotify for music). */
+admin.post('/art/search', async (c) => {
+  const { type, doc } = (await c.req.json()) as { type: EntityType; doc: AnyDoc };
+  try {
+    return c.json({ candidates: await findArt(c.env, type, doc) });
+  } catch (e) { return c.json(mediaError(e), 400); }
+});
+
 app.route('/admin', admin);
 app.all('*', (c) => c.json({ error: 'Not found.' }, 404));
 
-export default app satisfies ExportedHandler<AppEnv['Bindings']>;
+/** The Worker: stored images at /media/*, everything else under /api. */
+const site = new Hono<AppEnv>();
+site.get('/media/:key', (c) => serveImage(c.env, c.req.param('key'), c.req.raw));
+site.route('/', app);
+
+export default site satisfies ExportedHandler<AppEnv['Bindings']>;
