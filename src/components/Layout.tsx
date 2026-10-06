@@ -188,8 +188,6 @@ export function Layout() {
       </main>
       <footer className="site-footer">
         <span>{t.siteName}</span>
-        <span aria-hidden>✦</span>
-        <span lang="ja">おすすめ作品集</span>
         <small className="site-footer__credit">Some artwork via TMDB and Wikipedia. This site uses the TMDB API but is not endorsed or certified by TMDB.</small>
       </footer>
       <ScrollRestoration />
