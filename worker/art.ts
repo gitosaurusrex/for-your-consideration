@@ -127,12 +127,8 @@ export function shortBio(text: string | undefined, lang: 'en' | 'ja'): string | 
   return out.trim() || undefined;
 }
 
-/** A person's bio from TMDB in English and (when TMDB has one) Japanese, plus a credit line. */
-async function personBio(env: Bindings, id: number): Promise<Record<string, string | I18n> | undefined> {
-  const [en, ja] = await Promise.all([
-    tmdb(env, `/person/${id}`),
-    tmdb(env, `/person/${id}`, { language: 'ja-JP' }).catch((): Record<string, any> => ({})),
-  ]);
+/** The bio fields for a person, from TMDB's English and Japanese details responses. */
+function bioFields(en: Record<string, any>, ja: Record<string, any>): Record<string, string | I18n> | undefined {
   const bioEn = shortBio(en.biography, 'en');
   if (!bioEn) return undefined;
   // TMDB returns the English text when there's no Japanese one; only keep a real translation.
@@ -142,6 +138,52 @@ async function personBio(env: Bindings, id: number): Promise<Record<string, stri
     bio: { en: bioEn, ...(bioJa ? { ja: bioJa } : {}) },
     bio_credit: fromWikipedia ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB',
   };
+}
+
+const japaneseDetails = (env: Bindings, id: number) =>
+  tmdb(env, `/person/${id}`, { language: 'ja-JP' }).catch((): Record<string, any> => ({}));
+
+/** A person's bio from TMDB in English and (when TMDB has one) Japanese, plus a credit line. */
+async function personBio(env: Bindings, id: number): Promise<Record<string, string | I18n> | undefined> {
+  const [en, ja] = await Promise.all([tmdb(env, `/person/${id}`), japaneseDetails(env, id)]);
+  return bioFields(en, ja);
+}
+
+/** Something a person is credited on in this catalog, used to confirm which TMDB person they are. */
+export interface Credit { title: string; tmdb_id?: string; kind: string }
+
+const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+/**
+ * Finds a person on TMDB and returns what's missing from their record (photo, bio).
+ * A search result only counts as a match if their TMDB credits include something they're credited on here
+ * (same TMDB id, or the same title), so a common name never picks up a stranger's photo or bio.
+ */
+export async function fillPerson(env: Bindings, p: PersonDoc, credits: Credit[]): Promise<Record<string, string | I18n>> {
+  if (!p.name?.en) throw new ArtError('No English name to search for.');
+  const { results } = await tmdb(env, '/search/person', { query: p.name.en });
+  const ids = new Set(credits.map((c) => c.tmdb_id).filter(Boolean).map(String));
+  const titles = new Set(credits.map((c) => norm(c.title)).filter(Boolean));
+  let match: Record<string, any> | undefined;
+  // The top few results by popularity; one details call each (with their credits).
+  for (const r of (results as Record<string, any>[]).slice(0, 3)) {
+    const d = await tmdb(env, `/person/${r.id}`, { append_to_response: 'combined_credits' });
+    const theirs = [...(d.combined_credits?.cast ?? []), ...(d.combined_credits?.crew ?? [])] as Record<string, any>[];
+    if (theirs.some((c) => ids.has(String(c.id)) || titles.has(norm(c.title ?? c.name)) || titles.has(norm(c.original_title ?? c.original_name)))) {
+      match = d;
+      break;
+    }
+  }
+  if (!match) {
+    throw new ArtError(results?.length
+      ? 'No TMDB person with matching credits. Use Find art on their page to pick one by hand.'
+      : 'Not found on TMDB (musicians often aren\'t listed). Add a photo and bio by hand.');
+  }
+  const out: Record<string, string | I18n> = {};
+  if (!p.photo && match.profile_path) out.photo = `${TMDB_IMG}/w342${match.profile_path}`;
+  if (!p.bio?.en && !p.bio?.ja) Object.assign(out, bioFields(match, await japaneseDetails(env, match.id)));
+  if (!Object.keys(out).length) throw new ArtError(`TMDB has no photo or bio for ${match.name}.`);
+  return out;
 }
 
 async function person(env: Bindings, p: PersonDoc): Promise<ArtCandidate[]> {

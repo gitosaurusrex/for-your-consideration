@@ -5,6 +5,7 @@ import { api, type IngestListRow } from './api';
 import { useAction, useAdmin } from './context';
 import { I18nInput } from './fields';
 import { countLinked, MirrorProgress, useMirror } from './mirror';
+import { FillPeopleProgress, missingPhotoOrBio, useFillPeople } from './peopleFill';
 
 const MEDIUM_UI: Record<Medium, { icon: string; label: string }> = {
   watch: { icon: '🎬', label: 'Film & TV' },
@@ -24,6 +25,8 @@ export function Dashboard() {
   const [text, setText] = useState<SiteSettings['text']>(data.settings.text);
   const [art, setArt] = useState<{ tmdb: boolean; igdb: boolean } | null>(null);
   const mirror = useMirror();
+  const fillPeople = useFillPeople();
+  const needPeople = missingPhotoOrBio(data.people).length;
   const images = countLinked([...data.items, ...data.people, ...data.companies]);
   useEffect(() => {
     api.ingests().then(setIngests).catch(() => {});
@@ -95,6 +98,16 @@ export function Dashboard() {
           )}
         </p>
         <MirrorProgress {...mirror} />
+        {art?.tmdb && (
+          <p className="small">
+            <b>{needPeople}</b> {needPeople === 1 ? 'person has' : 'people have'} no headshot or bio
+            {needPeople > 0 && !fillPeople.running && (
+              <> — <button className="link-button" onClick={() => fillPeople.run(needPeople)}>fill in from TMDB</button>
+                <span className="muted"> (only empty fields; only when their TMDB credits match)</span></>
+            )}
+          </p>
+        )}
+        <FillPeopleProgress {...fillPeople} />
         {art && (
           <p className="muted small">
             “Find art” sources: TMDB (films, TV, people) {art.tmdb ? '✓' : '✗ not set up'} · IGDB (games) {art.igdb ? '✓' : '✗ not set up'} · Spotify (music) ✓ always

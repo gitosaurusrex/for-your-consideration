@@ -28,6 +28,7 @@ export interface RefList { id: string; title: I18n; kind: ItemKind }
 export interface IngestListRow { id: number; created_at: string; filename: string | null; counts: Plan['counts'] }
 
 export interface ArtCandidate { source: string; label: string; detail?: string; preview: string; fields: Record<string, string | I18n> }
+export interface FillPeopleResult { filled: { id: string; label: string; got: string[] }[]; failed: { id: string; label: string; error: string }[]; remaining: number }
 export interface MirrorResult { copied: number; failed: { label: string; field: string; url: string; error: string }[]; remaining: number }
 
 async function upload(file: Blob): Promise<{ url: string }> {
@@ -41,6 +42,7 @@ export const api = {
   upload,
   importImage: (url: string) => request<{ url: string }>('POST', '/media/import', { url }),
   mirror: (skip: string[], limit = 6) => request<MirrorResult>('POST', '/media/mirror', { skip, limit }),
+  fillPeople: (skip: string[]) => request<FillPeopleResult>('POST', '/people/fill', { skip }),
   artStatus: () => request<{ tmdb: boolean; igdb: boolean; spotify: boolean }>('GET', '/art/status'),
   findArt: (type: EntityType, doc: unknown) => request<{ candidates: ArtCandidate[] }>('POST', '/art/search', { type, doc }),
   login: (password: string) => request<{ ok: true }>('POST', '/login', { password }),
