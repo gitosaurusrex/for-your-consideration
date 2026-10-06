@@ -15,7 +15,7 @@ function flagsFor(type: EntityType, doc: AnyDoc): string[] {
   const missingJa = (v?: I18n) => v?.en && !v.ja;
   if (type === 'item') {
     const i = doc as ItemDoc;
-    if (missingJa(i.title) || missingJa(i.summary) || missingJa(i.note)) out.push('needs Japanese');
+    if (missingJa(i.title) || missingJa(i.summary)) out.push('needs Japanese');
     if (!i.poster && !i.cover) out.push('no art');
     if (i.medium === 'watch' && !i.watch_url) out.push('no watch link');
     if (i.medium === 'listen' && !i.spotify_url) out.push('no Spotify link');

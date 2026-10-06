@@ -49,7 +49,6 @@ export interface ItemDoc {
   medium: Medium;
   title: I18n;
   summary: I18n;
-  note?: I18n;
   genres: string[];
   year: number;
   featured?: boolean;
@@ -116,10 +115,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     evening: { en: 'Good evening', ja: 'こんばんは', th: 'สวัสดีตอนเย็น', es: 'Buenas tardes' },
     night: { en: 'Hello, night owl', ja: 'お疲れさまです', th: 'สวัสดีตอนค่ำ', es: 'Buenas noches' },
     intro: {
-      en: 'Welcome. This is a hand-picked shelf of films, shows, music and games worth a look. No spoilers here, just a short note on why each one made the list.',
-      ja: 'ようこそ。おすすめの映画、ドラマ、音楽、ゲームを集めた本棚です。ネタバレはなし。それぞれ選んだ理由をひとこと添えています。',
-      th: 'ยินดีต้อนรับ ที่นี่รวบรวมภาพยนตร์ ซีรีส์ เพลง และเกมที่คัดสรรมาแล้วว่าน่าลอง ไม่มีสปอยล์ มีเพียงบันทึกสั้น ๆ ว่าทำไมแต่ละเรื่องถึงได้อยู่ในรายการนี้',
-      es: 'Te doy la bienvenida. Esta es una selección hecha a mano de películas, series, música y juegos que vale la pena conocer. Sin spoilers: solo una nota breve sobre por qué cada uno está en la lista.',
+      en: 'Welcome. This is a hand-picked shelf of films, shows, music and games worth a look, with no spoilers.',
+      ja: 'ようこそ。おすすめの映画、ドラマ、音楽、ゲームを集めた本棚です。ネタバレはありません。',
+      th: 'ยินดีต้อนรับ ที่นี่รวบรวมภาพยนตร์ ซีรีส์ เพลง และเกมที่คัดสรรมาแล้วว่าน่าลอง ไม่มีสปอยล์',
+      es: 'Te doy la bienvenida. Esta es una selección hecha a mano de películas, series, música y juegos que vale la pena conocer, sin spoilers.',
     },
     signoff: { en: 'Enjoy browsing', ja: 'どうぞごゆっくり', th: 'ขอให้สนุกกับการเลือกชม', es: 'Disfruta explorando' },
   },
@@ -171,7 +170,6 @@ const ITEM_HEAD: FieldSpec[] = [
   f('kind', 'Type', 'select', { required: true, options: SELECT_KINDS }),
   f('title', 'Title', 'text', { i18n: true, required: true, hint: 'Use the official release title in each language (e.g. the Japanese release title for 日本語). Leave a language blank to show English.' }),
   f('summary', 'Spoiler-free summary', 'textarea', { i18n: true, required: true }),
-  f('note', 'Why I recommend it', 'textarea', { i18n: true }),
   f('genres', 'Genres', 'refs', { to: 'genre', required: true }),
 ];
 const ITEM_TAIL: FieldSpec[] = [

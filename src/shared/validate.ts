@@ -68,7 +68,9 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
   // Fields the site fills in itself: an item's medium (from its kind) and a game's year (from its release dates).
   // Saved records and exports include them, so they're accepted here rather than reported as unknown.
   const derived = type === 'item' ? ['medium', ...(KIND_MEDIUM[kind!] === 'play' ? ['year'] : [])] : [];
-  const known = new Set(fields.map((s) => s.key).concat(derived));
+  // Fields the site no longer has. Older exports and files still contain them, so they're dropped without a warning.
+  const retired = type === 'item' ? ['note'] : [];
+  const known = new Set(fields.map((s) => s.key).concat(derived, retired));
   for (const k of Object.keys(input)) if (!known.has(k)) warnings.push(`unknown field "${k}" was ignored`);
 
   const doc: Record<string, unknown> = {};

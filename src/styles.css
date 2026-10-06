@@ -468,22 +468,6 @@ p { margin: 0; }
 .credits__text { font-weight: 500; }
 .detail__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 
-.note {
-  position: relative; margin-top: 30px; padding: 22px 24px 20px; max-width: 36em;
-  background: #fff4dc; color: #3a2a12; border-radius: 6px;
-  transform: rotate(-1deg);
-  box-shadow: 0 20px 40px -20px rgb(0 0 0 / 0.8);
-  background-image: repeating-linear-gradient(transparent 0 31px, rgb(120 90 40 / 0.14) 31px 32px);
-}
-.note::before {
-  content: ''; position: absolute; top: -12px; left: 50%; width: 96px; height: 26px; transform: translateX(-50%) rotate(2deg);
-  background: hsl(var(--h) 80% 75% / 0.75); border-radius: 2px; box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
-}
-.note__label { font-family: var(--font-hand); font-size: 22px; font-weight: 700; color: #b34d2a; margin-bottom: 4px; }
-.note__text { font-family: var(--font-hand); font-size: 23px; line-height: 1.4; }
-:lang(ja) .note__label { font-size: 17px; }
-:lang(ja) .note__text { font-size: 17px; line-height: 1.9; }
-
 /* Vinyl that slides out from behind the cover on music pages. */
 .detail--listen .detail__art-wrap { margin-right: 18%; }
 .vinyl {
