@@ -3,7 +3,7 @@ import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile 
 import { ENTITY_TYPES, IMAGE_FIELDS, isStoredImage, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type SiteSettings } from '../src/shared/schema';
 import { normalize, referencesOf } from '../src/shared/validate';
 import { ArtError, artStatus, findArt } from './art';
-import { requireAdmin } from './auth';
+import { login, logout, requireAdmin } from './auth';
 import { getEntity, getSettings, loadAll, putSetting, upsert } from './db';
 import type { AppEnv } from './env';
 import { importImage, MediaError, serveImage, storeImage } from './media';
@@ -37,6 +37,9 @@ app.get('/catalog', async (c) => {
 // ───────────────────────────── Admin ─────────────────────────────
 
 const admin = new Hono<AppEnv>();
+// Registered before the guard, so they're reachable while signed out.
+admin.post('/login', login);
+admin.post('/logout', logout);
 admin.use('*', requireAdmin);
 
 admin.get('/me', (c) => c.json({ email: c.get('adminEmail') }));

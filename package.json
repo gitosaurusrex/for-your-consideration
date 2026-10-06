@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "hono": "^4.13.13",
-    "jose": "^6.2.12",
     "motion": "^14.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

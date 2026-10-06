@@ -6,8 +6,7 @@ export interface Bindings {
   TMDB_API_KEY?: string;
   TWITCH_CLIENT_ID?: string;
   TWITCH_CLIENT_SECRET?: string;
-  ACCESS_TEAM_DOMAIN?: string;
-  ACCESS_AUD?: string;
+  ADMIN_PASSWORD?: string;
   DEV_AUTH_BYPASS?: string;
 }
 

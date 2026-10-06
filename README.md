@@ -19,7 +19,7 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
 - **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
 - **EN / 日本語 switch.** Defaults to the browser language. `?lang=ja` forces Japanese.
 - Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
-- **Admin at `/admin`**, behind a Cloudflare Access login:
+- **Admin at `/admin`**, behind a password login:
   - batch JSON ingest with a preview and conflict review
   - edit or delete any record
   - switch whole sections (e.g. Games) on or off
@@ -32,7 +32,7 @@ Browser ── GET /api/catalog, /media/* ──┐
                                         ▼
    Cloudflare Worker (worker/)  ──  D1 database (SQLite) + KV or R2 (images)
                               ▲
-/admin ── Cloudflare Access login ── /api/admin/*  (JWT verified again in the Worker)
+/admin ── password login ── /api/admin/*  (signed session cookie checked by the Worker)
 ```
 
 - **Frontend:** React + Vite (`src/`). The admin is a separate lazy-loaded bundle (`src/admin/`), so visitors never download it.
@@ -40,7 +40,7 @@ Browser ── GET /api/catalog, /media/* ──┐
 - **Database:** Cloudflare D1. Every record is a JSON document (`migrations/`).
 - **Images:** Workers KV by default, or Cloudflare R2 if you enable it. Uploaded and copied artwork is served from `/media/<content-hash>.<ext>`, cached permanently.
 - **Shared rules:** `src/shared/` holds the field definitions, validation and ingest/diff logic. Both the Worker and the admin forms use it, so there's one source of truth.
-- **Login:** Cloudflare Access (Zero Trust, free for small teams) shows an email-code login in front of `/admin`. There's no login code in the app. The Worker still verifies Access's signed token on every admin API call.
+- **Login:** one admin password, stored as a Worker secret. Signing in sets an HttpOnly, SameSite=Strict cookie signed with that password, and the Worker checks it on every admin API call. Wrong passwords are rate-limited per address.
 
 Everything runs on Cloudflare's free tier.
 
@@ -63,7 +63,6 @@ npm test                         # validation, ingest and login tests
 
 - A free [Cloudflare account](https://dash.cloudflare.com/sign-up), and Node 22.9+ on your computer.
 - Images are stored in Workers KV, which needs no payment method. (R2 is supported too, but enabling it asks for a card; see [Using R2 instead](#using-r2-instead-of-kv).)
-- Zero Trust (used for the admin login in step 2) also asks for a payment method when you pick its **Free** plan. That isn't charged either.
 
 ### 1. Create the database and image storage, then deploy
 
@@ -94,32 +93,19 @@ If a build fails on the migrations step with a permissions error, set the deploy
 
 KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a personal catalog. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and deploy. Images already in KV aren't moved automatically.
 
-### 2. Protect the admin with Cloudflare Access (no code)
+### 2. Set the admin password
 
-1. In the Cloudflare dashboard, open **Zero Trust**. The first time, choose a team name and the **Free** plan.
-2. Go to **Access controls → Applications → Add an application → Self-hosted**.
-   - **Add public hostname:** pick your site's hostname (the `workers.dev` address works, or your own domain) and enter the path `admin`.
-   - **Add public hostname** again with the same hostname and the path `api/admin`.
-   - **Policy:** action *Allow*, rule *Include → Emails →* your email address.
-     - ⚠️ Don't use "Login Methods → One-time PIN" as the Include rule. That would let anyone who can receive an email in.
-   - **Login method:** One-time PIN (a code emailed to you). If it isn't offered, add it under **Zero Trust → Settings → Authentication → Login methods**.
-3. Copy two values:
-   - **AUD tag:** open the application → **Configure** → **Additional settings** → **Application Audience (AUD) Tag**.
-   - **Team domain:** **Zero Trust → Settings** shows your team name. The domain is `<team-name>.cloudflareaccess.com`.
-4. Put them in `wrangler.jsonc` under `vars`, then run `npm run deploy` again:
+```bash
+npx wrangler secret put ADMIN_PASSWORD
+```
 
-   ```jsonc
-   "vars": {
-     "ACCESS_TEAM_DOMAIN": "yourteam.cloudflareaccess.com",
-     "ACCESS_AUD": "the-long-aud-tag"
-   }
-   ```
+Pick a long password (at least 12 characters; a few random words is good) and save it in your password manager. It takes effect immediately, with no redeploy needed.
 
-   These two values aren't secret; they're safe to commit.
+Visit `https://<your-site>/admin` and sign in with it. You stay signed in on that browser for 30 days, or until you click **Sign out**.
 
-Visit `https://<your-site>/admin`. You should see Cloudflare's login page, then the admin after entering the emailed code.
-
-Until step 4 is done, the admin API refuses every request. It also re-checks Access's signed token itself, so it stays locked on any address Access doesn't cover, such as preview URLs. **If you later add your own domain, add it to the Access application too** (both paths). Then turn the `workers.dev` address off under **Settings → Domains & Routes** so there's a single place to sign in.
+- Until the password is set, the admin API refuses every request.
+- Ten wrong passwords from one address lock that address out for 15 minutes.
+- To change the password, run the same command again. That also signs out every browser that was signed in.
 
 ### 3. Artwork lookups (optional, free keys)
 
@@ -172,7 +158,7 @@ Database migrations are applied as part of either path.
 ## Project layout
 
 ```
-worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export, images (KV/R2), art lookup; Access JWT check
+worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export, images (KV/R2), art lookup; password login
 migrations/      D1 schema
 src/shared/      field definitions, validation, ingest diff/merge (used by Worker + admin)
 src/admin/       admin UI (lazy-loaded)

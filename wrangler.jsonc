@@ -27,12 +27,8 @@
   // create it with `npx wrangler r2 bucket create fyc-media`, then uncomment this line.
   // When both are set, R2 is used.
   // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "fyc-media" }],
-  // Secrets for "Find art" (set with `npx wrangler secret put NAME`, never in this file):
-  //   TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET
-  "vars": {
-    // Cloudflare Access (Zero Trust) settings for the /admin login. See README.
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
-  },
+  // Secrets (set with `npx wrangler secret put NAME`, never in this file):
+  //   ADMIN_PASSWORD (admin login, 12+ characters)
+  //   TMDB_API_KEY, TWITCH_CLIENT_ID, TWITCH_CLIENT_SECRET (optional, for "Find art")
   "observability": { "enabled": true }
 }
