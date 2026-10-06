@@ -53,6 +53,6 @@ const isAdmin = location.pathname.startsWith('/admin');
   .catch((err) => {
     console.error(err);
     const msg = document.querySelector('.boot__msg');
-    if (msg) msg.textContent = 'Could not load recommendations — please refresh. / 読み込めませんでした。再読み込みしてください。';
+    if (msg) msg.textContent = 'Could not load The Stacks — please refresh.';
     document.querySelector('.boot')?.classList.add('boot--error');
   });

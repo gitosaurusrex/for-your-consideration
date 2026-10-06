@@ -7,10 +7,9 @@ import { AvailabilityBadge } from '../components/Availability';
 import { CountryTag, GenreTag, PersonChip, PlatformTag, StudioChip } from '../components/Chips';
 import { Shelf } from '../components/Grid';
 import { usePageHue } from '../components/Layout';
-import type { Item, Lang, Medium } from '../types';
+import type { Item, Medium } from '../types';
 import { NotFound } from './NotFound';
 
-const other = (l: Lang): Lang => (l === 'en' ? 'ja' : 'en');
 const BACK: Record<Medium, string> = { watch: '/watch', listen: '/listen', play: '/play' };
 
 function BackButton({ fallback }: { fallback: string }) {
@@ -67,7 +66,8 @@ function DetailView({ item }: { item: Item }) {
   usePageHue(hue);
   const d = item.doc;
   const loc = item[lang];
-  const alt = item[other(lang)];
+  // English pages show only the English title; other languages show the English one beneath theirs.
+  const alt = lang === 'en' ? undefined : item.en;
   const backdrop = d.backdrop || itemArt(item);
   const more = related(item);
   const reveal = (i: number) => ({ '--i': i }) as CSSProperties;
@@ -122,7 +122,7 @@ function DetailView({ item }: { item: Item }) {
         <div className="detail__info">
           <p className="eyebrow reveal" style={reveal(0)}>{meta}</p>
           <h1 className="detail__title reveal" style={reveal(1)}>{loc.title}</h1>
-          {alt.title !== loc.title && <p className="detail__alt-title reveal" lang={other(lang)} style={reveal(2)}>{alt.title}</p>}
+          {alt && alt.title !== loc.title && <p className="detail__alt-title reveal" lang="en" style={reveal(2)}>{alt.title}</p>}
           {d.added && <p className="detail__added reveal" style={reveal(2)}>＋ {t.addedOn(formatDate(d.added, lang))}</p>}
           <div className="detail__tags reveal" style={reveal(3)}>
             {d.countries?.map((c) => <CountryTag key={c} code={c} />)}

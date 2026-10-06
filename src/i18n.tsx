@@ -5,7 +5,7 @@ import type { Lang } from './types';
 
 const en = {
   siteName: 'The Stacks',
-  tagline: 'Hand-picked films, shows, music & games',
+  tagline: 'Films, shows, music & games',
   navHome: 'Home',
   navWatch: 'Watch',
   navListen: 'Listen',
@@ -104,7 +104,7 @@ const strings: Record<Lang, Strings> = {
   en,
   ja: {
     siteName: 'The Stacks',
-    tagline: '厳選した映画・ドラマ・音楽・ゲーム',
+    tagline: '映画・ドラマ・音楽・ゲーム',
     navHome: 'ホーム',
     navWatch: '観る',
     navListen: '聴く',
@@ -197,7 +197,7 @@ const strings: Record<Lang, Strings> = {
   },
   th: {
     siteName: 'The Stacks',
-    tagline: 'ภาพยนตร์ ซีรีส์ เพลง และเกม ที่คัดสรรมาอย่างดี',
+    tagline: 'ภาพยนตร์ ซีรีส์ เพลง และเกม',
     navHome: 'หน้าแรก',
     navWatch: 'ดู',
     navListen: 'ฟัง',
@@ -290,7 +290,7 @@ const strings: Record<Lang, Strings> = {
   },
   es: {
     siteName: 'The Stacks',
-    tagline: 'Películas, series, música y juegos elegidos a mano',
+    tagline: 'Películas, series, música y juegos',
     navHome: 'Inicio',
     navWatch: 'Ver',
     navListen: 'Escuchar',
