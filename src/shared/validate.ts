@@ -65,7 +65,10 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
     }
   }
   const fields = fieldsFor(type, kind);
-  const known = new Set(fields.map((s) => s.key).concat(type === 'item' ? ['medium'] : []));
+  // Fields the site fills in itself: an item's medium (from its kind) and a game's year (from its release dates).
+  // Saved records and exports include them, so they're accepted here rather than reported as unknown.
+  const derived = type === 'item' ? ['medium', ...(KIND_MEDIUM[kind!] === 'play' ? ['year'] : [])] : [];
+  const known = new Set(fields.map((s) => s.key).concat(derived));
   for (const k of Object.keys(input)) if (!known.has(k)) warnings.push(`unknown field "${k}" was ignored`);
 
   const doc: Record<string, unknown> = {};
@@ -82,6 +85,9 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
       const dates = [doc.release_us, doc.release_jp].filter(Boolean) as string[];
       if (!dates.length) errors.push('a game needs a US or Japan release date');
       else doc.year = Number(dates.sort()[0].slice(0, 4));
+      if (input.year != null && doc.year != null && Number(input.year) !== doc.year) {
+        warnings.push(`"year" is set automatically from the release dates (${doc.year})`);
+      }
     }
     if (input.medium != null && input.medium !== doc.medium) warnings.push(`"medium" is set automatically from "kind" (${doc.medium})`);
   }

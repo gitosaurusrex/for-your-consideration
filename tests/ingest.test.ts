@@ -27,6 +27,26 @@ describe('normalize', () => {
     expect(doc).toMatchObject({ id: 'death-stranding', medium: 'play', year: 2019, platforms: ['ps4', 'pc'], title: { en: 'Death Stranding' } });
   });
 
+  it('accepts a saved game as-is, including the year it derived', () => {
+    // What the admin sends back on Save (and what Export writes): the stored record, medium and year included.
+    const saved = { ...deathStranding, medium: 'play', year: 2019, added: '2026-01-01' };
+    const { doc, errors, warnings } = normalize('item', saved);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(doc).toMatchObject({ year: 2019, medium: 'play' });
+  });
+
+  it('keeps a game\'s year in step with its release dates', () => {
+    const { doc, warnings } = normalize('item', { ...deathStranding, year: 1999 });
+    expect(doc).toMatchObject({ year: 2019 });
+    expect(warnings).toEqual(['"year" is set automatically from the release dates (2019)']);
+  });
+
+  it('still reports fields that really are unknown', () => {
+    const { warnings } = normalize('item', { ...deathStranding, rating: 5 });
+    expect(warnings).toEqual(['unknown field "rating" was ignored']);
+  });
+
   it('reports readable errors', () => {
     const { doc, errors } = normalize('item', { kind: 'game', title: 'X', summary: 'y', genres: ['a'], developers: ['d'], platforms: ['ps6'], release_us: '2019-13-01' });
     expect(doc).toBeNull();
