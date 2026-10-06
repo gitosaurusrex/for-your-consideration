@@ -150,3 +150,12 @@ describe('fillDoc for a person', () => {
     expect(r.patch.photo).toBe('/media/abc.jpg');
   });
 });
+
+describe('AI chip in admin lists', () => {
+  it('groups still-ticked AI flags by field and ignores TMDB ones', async () => {
+    const { aiFields } = await import('../src/admin/EntityList');
+    const doc = { id: 'x', sources: { 'summary.th': 'ai', 'summary.es': 'ai', 'title.ja': 'tmdb', 'name.ja': 'ai' } } as never;
+    expect(aiFields(doc)).toEqual({ summary: ['th', 'es'], name: ['ja'] });
+    expect(aiFields({ id: 'y' } as never)).toEqual({});
+  });
+});

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { MEDIA, MEDIUM_KINDS, type AnyDoc, type EntityType, type GenreDoc, type I18n, type ItemDoc, type Medium } from '../shared/schema';
+import { LANG_INFO, MEDIA, MEDIUM_KINDS, type AnyDoc, type EntityType, type GenreDoc, type I18n, type ItemDoc, type Lang, type Medium } from '../shared/schema';
 import { referencesOf } from '../shared/validate';
 import { api } from './api';
 import { useAction, useAdmin } from './context';
@@ -25,10 +25,34 @@ function flagsFor(type: EntityType, doc: AnyDoc): string[] {
     if (type === 'person' && !named.photo) out.push('no photo');
     if (type === 'person' && !named.bio) out.push('no bio');
   }
-  // AI translations still flagged (the editor unticks the box once reviewed).
-  const ai = Object.values(doc.sources ?? {}).filter((s) => s === 'ai').length;
-  if (ai) out.push(`${ai} AI translation${ai === 1 ? '' : 's'} to review`);
   return out;
+}
+
+/**
+ * Fields whose AI-translated box is still ticked, grouped by field: { summary: ['th', 'es'] }.
+ * Relies only on that checkbox, so unticking the last one removes the AI chip.
+ */
+export function aiFields(doc: AnyDoc): Record<string, Lang[]> {
+  const out: Record<string, Lang[]> = {};
+  for (const [key, src] of Object.entries(doc.sources ?? {})) {
+    if (src !== 'ai') continue;
+    const dot = key.lastIndexOf('.');
+    (out[key.slice(0, dot)] ??= []).push(key.slice(dot + 1) as Lang);
+  }
+  return out;
+}
+
+/** The AI chip for the Flags column, with the fields and languages still to review in its tooltip. */
+function AiChip({ doc }: { doc: AnyDoc }) {
+  const fields = aiFields(doc);
+  const count = Object.values(fields).flat().length;
+  if (!count) return null;
+  const detail = Object.entries(fields).map(([f, langs]) => `${f} (${langs.map((l) => LANG_INFO[l].short).join(', ')})`).join('; ');
+  return (
+    <span className="flag flag--ai" title={`AI-translated, not yet reviewed: ${detail}`}>
+      AI{count > 1 && <span className="flag__count"> · {count}</span>}
+    </span>
+  );
 }
 
 export function EntityList({ type }: { type: EntityType }) {
@@ -39,6 +63,7 @@ export function EntityList({ type }: { type: EntityType }) {
   const [q, setQ] = useState('');
   const medium = params.get('m') as Medium | null;
   const onlyFlagged = params.get('flagged') === '1';
+  const onlyAi = params.get('ai') === '1';
 
   const docs: AnyDoc[] = type === 'item' ? data.items : type === 'person' ? data.people : type === 'company' ? data.companies : data.genres;
 
@@ -53,13 +78,14 @@ export function EntityList({ type }: { type: EntityType }) {
     return docs
       .filter((d) => !medium || (d as ItemDoc | GenreDoc).medium === medium)
       .filter((d) => !needle || JSON.stringify(d).toLowerCase().includes(needle))
-      .map((d) => ({ d, flags: flagsFor(type, d), uses: usage.get(`${type}:${d.id}`) ?? 0 }))
-      .filter((r) => !onlyFlagged || r.flags.length)
+      .map((d) => ({ d, flags: flagsFor(type, d), ai: Object.keys(aiFields(d)).length > 0, uses: usage.get(`${type}:${d.id}`) ?? 0 }))
+      .filter((r) => !onlyFlagged || r.flags.length || r.ai)
+      .filter((r) => !onlyAi || r.ai)
       .sort((a, b) =>
         type === 'item'
           ? ((b.d as ItemDoc).added ?? '').localeCompare((a.d as ItemDoc).added ?? '')
           : nameOf(a.d).localeCompare(nameOf(b.d)));
-  }, [docs, q, medium, onlyFlagged, type, usage]);
+  }, [docs, q, medium, onlyFlagged, onlyAi, type, usage]);
 
   const del = async (d: AnyDoc) => {
     if (!confirm(`Delete “${nameOf(d)}”? This can't be undone.`)) return;
@@ -97,6 +123,9 @@ export function EntityList({ type }: { type: EntityType }) {
         )}
         <input className="list-tools__search" type="search" placeholder="Filter…" value={q} onChange={(e) => setQ(e.target.value)} />
         <label className="field--check small"><input type="checkbox" checked={onlyFlagged} onChange={(e) => setParam('flagged', e.target.checked ? '1' : null)} /> Only ones needing attention</label>
+        {type !== 'company' && (
+          <label className="field--check small"><input type="checkbox" checked={onlyAi} onChange={(e) => setParam('ai', e.target.checked ? '1' : null)} /> Only with AI translations</label>
+        )}
       </div>
 
       <table className="table table--list">
@@ -125,7 +154,7 @@ export function EntityList({ type }: { type: EntityType }) {
                 {type === 'item' && <><td>{KIND_LABEL[item.kind]}</td><td>{item.year}</td><td className="nowrap">{item.added}</td></>}
                 {type === 'genre' && <td>{MEDIUM_LABEL[(d as GenreDoc).medium]}</td>}
                 {type !== 'item' && <td>{uses}</td>}
-                <td>{flags.map((f) => <span key={f} className="flag">{f}</span>)}</td>
+                <td><AiChip doc={d} />{flags.map((f) => <span key={f} className="flag">{f}</span>)}</td>
                 <td className="row-actions">
                   <Link to={adminEditPath(type, d.id)}>Edit</Link>
                   <a href={sitePath(type, d)} target="_blank" rel="noreferrer">View ↗</a>
