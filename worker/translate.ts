@@ -1,8 +1,9 @@
 import {
-  LANG_INFO, sourceKey, TRANSLATIONS,
+  LANG_INFO, LANGS, sourceKey, TRANSLATIONS,
   type AnyDoc, type EntityType, type GenreDoc, type I18n, type ItemDoc, type Lang, type PersonDoc, type Sources,
 } from '../src/shared/schema';
-import { ArtError, bioFields, matchTmdbPerson, namesFromTmdb, tmdb, translatedDetails, type Credit } from './art';
+import { ArtError, bioFields, matchTmdbPerson, namesFromTmdb, tmdb, TMDB_IMG, translatedDetails, type Credit } from './art';
+import { fillPlan, planKeys } from '../src/shared/fill';
 import type { Bindings } from './env';
 
 /**
@@ -80,10 +81,10 @@ async function tmdbTitles(env: Bindings, item: ItemDoc): Promise<Partial<Record<
   return out;
 }
 
-export interface TranslateResult {
-  /** The translated fields, merged with what was there (only empty languages filled). */
-  patch: Record<string, I18n | Sources>;
-  /** "field.lang" keys that were filled, with their source. */
+export interface FillResult {
+  /** The filled fields, merged with what was there (only empty values filled). */
+  patch: Record<string, unknown>;
+  /** Keys that were filled ("photo", "summary.th"), with their source. */
   filled: Record<string, 'tmdb' | 'ai'>;
   /** Why some things weren't filled (e.g. no TMDB match); not errors. */
   notes: string[];
@@ -91,39 +92,63 @@ export interface TranslateResult {
   aiStopped?: string;
 }
 
-/** Fill this record's empty translations. Nothing is saved here; callers save `patch` (or show it in the form). */
-export async function translateDoc(env: Bindings, type: EntityType, doc: AnyDoc, credits: Credit[] = []): Promise<TranslateResult> {
+export interface FillOptions {
+  /** What this record is credited on, to confirm which TMDB person it is. */
+  credits?: Credit[];
+  /** Only these keys ("photo", "bio.en", "summary.th"); default: everything in the record's fill plan. */
+  only?: string[];
+  /** Store a copy of a filled photo on the site (the "Keep a copy of artwork" setting). */
+  copyImage?: (url: string) => Promise<string>;
+}
+
+/**
+ * Fill this record's empty fields from its fill plan: TMDB first (a person's photo and bios, official titles,
+ * names), then Cloudflare AI for translations still empty. Nothing is saved here; callers save `patch`
+ * (the Dashboard) or put it in the form (the edit page).
+ */
+export async function fillDoc(env: Bindings, type: EntityType, doc: AnyDoc, opts: FillOptions = {}): Promise<FillResult> {
   const d = doc as unknown as Record<string, unknown>;
+  const allowed = new Set(opts.only ?? planKeys(fillPlan(type, doc, !!env.TMDB_API_KEY)));
+  const want = (key: string) => allowed.has(key);
   const fields: Record<string, I18n> = {};
-  for (const { field } of FIELDS[type]) if ((d[field] as I18n | undefined)?.en) fields[field] = { ...(d[field] as I18n) };
+  const edit = (field: string) => (fields[field] ??= { en: '', ...((d[field] as I18n | undefined) ?? {}) });
   const sources: Sources = { ...(doc.sources ?? {}) };
-  const filled: TranslateResult['filled'] = {};
+  const filled: FillResult['filled'] = {};
+  const extra: Record<string, unknown> = {};
   const notes: string[] = [];
   const put = (field: string, l: Lang, text: string | undefined, src: 'tmdb' | 'ai') => {
-    const v = fields[field];
-    if (!v || v[l] || !text) return;
-    v[l] = text;
-    sources[sourceKey(field, l)] = src;
-    filled[sourceKey(field, l)] = src;
+    const key = sourceKey(field, l);
+    if (!text || !want(key) || (d[field] as I18n | undefined)?.[l] || fields[field]?.[l]) return;
+    edit(field)[l] = text;
+    sources[key] = src;
+    filled[key] = src;
   };
 
   // 1. TMDB.
   if (env.TMDB_API_KEY) {
     try {
-      if (type === 'item') {
+      if (type === 'item' && LANGS.some((l) => want(sourceKey('title', l)))) {
         const titles = await tmdbTitles(env, doc as ItemDoc);
         for (const l of TRANSLATIONS) put('title', l, titles[l], 'tmdb');
       } else if (type === 'person') {
         const p = doc as PersonDoc;
-        const wantsName = !p.name.ja || !p.name.th;
-        const wantsBio = !!p.bio?.en && TRANSLATIONS.some((l) => !p.bio?.[l]);
-        if (wantsName || wantsBio) {
-          const match = await matchTmdbPerson(env, p, credits);
+        const wantsPhoto = want('photo') && !p.photo;
+        const wantsName = (['ja', 'th'] as const).some((l) => want(sourceKey('name', l)) && !p.name?.[l]);
+        const wantsBio = LANGS.some((l) => want(sourceKey('bio', l)) && !p.bio?.[l]);
+        if (wantsPhoto || wantsName || wantsBio) {
+          const match = await matchTmdbPerson(env, p, opts.credits ?? []);
+          if (wantsPhoto && match.profile_path) {
+            const url = `${TMDB_IMG}/w342${match.profile_path}`;
+            extra.photo = opts.copyImage ? await opts.copyImage(url).catch(() => url) : url;
+            filled.photo = 'tmdb';
+          }
           const names = namesFromTmdb(match);
           for (const l of ['ja', 'th'] as const) put('name', l, names[l], 'tmdb');
           if (wantsBio) {
             const bios = bioFields(match, await translatedDetails(env, match.id));
-            for (const l of TRANSLATIONS) put('bio', l, bios?.bio[l], 'tmdb');
+            for (const l of LANGS) put('bio', l, bios?.bio[l], 'tmdb');
+            // Credit the bio's source when its English text came from TMDB (Wikipedia text requires it).
+            if (filled['bio.en'] && bios) extra.bio_credit = bios.bio_credit;
           }
         }
       }
@@ -133,15 +158,16 @@ export async function translateDoc(env: Bindings, type: EntityType, doc: AnyDoc,
     }
   }
 
-  // 2. Cloudflare AI, from the English text, for whatever is still empty.
+  // 2. Cloudflare AI, from the English text (including an English bio TMDB just filled), for what's still empty.
   let aiStopped: string | undefined;
   ai: for (const { field, langs, ai } of FIELDS[type]) {
-    const v = fields[field];
-    if (!ai || !v?.en) continue;
+    const en = fields[field]?.en || (d[field] as I18n | undefined)?.en;
+    if (!ai || !en) continue;
     for (const l of langs) {
-      if (v[l]) continue;
+      const key = sourceKey(field, l);
+      if (!want(key) || (d[field] as I18n | undefined)?.[l] || fields[field]?.[l]) continue;
       try {
-        put(field, l, await aiTranslate(env, v.en, l), 'ai');
+        put(field, l, await aiTranslate(env, en, l), 'ai');
       } catch (e) {
         if (!(e instanceof TranslateError)) throw e;
         // Keep what TMDB and AI already filled; stop asking AI.
@@ -151,7 +177,15 @@ export async function translateDoc(env: Bindings, type: EntityType, doc: AnyDoc,
     }
   }
 
-  const patch: TranslateResult['patch'] = { ...fields };
+  // A translation needs its English text; drop any field that ended up with translations but no English.
+  for (const [field, v] of Object.entries(fields)) {
+    if (v.en) continue;
+    delete fields[field];
+    for (const l of LANGS) { delete filled[sourceKey(field, l)]; delete sources[sourceKey(field, l)]; }
+    delete extra.bio_credit;
+  }
+
+  const patch: FillResult['patch'] = { ...fields, ...extra };
   if (Object.keys(sources).length) patch.sources = sources;
   return { patch, filled, notes, ...(aiStopped ? { aiStopped } : {}) };
 }

@@ -3,7 +3,8 @@ import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile 
 import { ENTITY_TYPES, hasText, IMAGE_FIELDS, isStoredImage, LANGS, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type PersonDoc, type SiteSettings } from '../src/shared/schema';
 import { normalize, referencesOf } from '../src/shared/validate';
 import { ArtError, artStatus, fillPerson, findArt, type Credit } from './art';
-import { gapsOf, labelOf, translateDoc, TranslateError } from './translate';
+import { fillDoc, gapsOf, labelOf, TranslateError } from './translate';
+import { fillPlan, planKeys } from '../src/shared/fill';
 import { login, logout, requireAdmin } from './auth';
 import { getEntity, getSettings, loadAll, putSetting, upsert } from './db';
 import type { AppEnv } from './env';
@@ -311,12 +312,19 @@ admin.post('/people/fill', async (c) => {
 
 // ── Translations: TMDB first, then Cloudflare AI ──
 
-/** Fill one record's empty translations for the edit form. Nothing is saved; the form shows the result. */
-admin.post('/translate', async (c) => {
-  const { type, doc } = (await c.req.json()) as { type: EntityType; doc: AnyDoc };
-  const credits = type === 'person' ? creditsByPerson(await loadAll(c.env.DB)).get(doc.id) ?? [] : [];
+/**
+ * "Fill in missing" on an edit page: fill the chosen empty fields (`only`: keys from the record's fill plan) for
+ * the form. Nothing is saved; the editor reviews and saves.
+ */
+admin.post('/fill', async (c) => {
+  const { type, doc, only } = (await c.req.json()) as { type: EntityType; doc: AnyDoc; only?: string[] };
+  const [all, settings] = await Promise.all([loadAll(c.env.DB), getSettings(c.env.DB)]);
   try {
-    return c.json(await translateDoc(c.env, type, doc, credits));
+    return c.json(await fillDoc(c.env, type, doc, {
+      only,
+      credits: type === 'person' ? creditsByPerson(all).get(doc.id) ?? [] : [],
+      copyImage: settings.keepCopies ? (url) => importImage(c.env, url) : undefined,
+    }));
   } catch (e) { return c.json(mediaError(e), 400); }
 });
 
@@ -354,7 +362,9 @@ admin.post('/translate/fill', async (c) => {
   for (const job of batch) {
     done.push(job.key);
     const label = labelOf(job.type, job.doc);
-    const r = await translateDoc(c.env, job.type, job.doc, job.type === 'person' ? credits.get(job.doc.id) ?? [] : []);
+    // Translations only here; the Dashboard's headshots-and-bios step fills photos and English bios.
+    const only = planKeys(fillPlan(job.type, job.doc, !!c.env.TMDB_API_KEY).filter((r) => r.via === 'translate'));
+    const r = await fillDoc(c.env, job.type, job.doc, { only, credits: job.type === 'person' ? credits.get(job.doc.id) ?? [] : [] });
     if (Object.keys(r.filled).length) {
       writes.push(upsert(c.env.DB, job.type, { ...job.doc, ...r.patch } as AnyDoc));
       filled.push({ key: job.key, label, got: r.filled });

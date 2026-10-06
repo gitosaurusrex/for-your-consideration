@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { graphemes, greetingWords } from '../src/pages/Home';
 import { DEFAULT_SETTINGS, LANGS, PERIODS } from '../src/shared/schema';
 import { normalize } from '../src/shared/validate';
-import { findArt, shortBio } from '../worker/art';
+import { shortBio } from '../worker/art';
+import { fillDoc } from '../worker/translate';
 import { getSettings } from '../worker/db';
 
 const film = { kind: 'film', summary: 'B', genres: ['drama'], year: 2020, directors: ['x'] };
@@ -77,15 +78,18 @@ describe('bios in Thai and Spanish', () => {
     expect(bio.length).toBeLessThanOrEqual(260);
     expect(bio.split(' ').every((p) => p === phrase)).toBe(true);
   });
-  it('Find art brings each translation TMDB has', async () => {
+  it('Fill in missing brings each bio translation TMDB has', async () => {
     const bios: Record<string, string> = { '': 'Ana is an actor. She lives in Ohio.', 'ja-JP': '', 'th-TH': 'อานาเป็นนักแสดง', 'es-ES': 'Ana es actriz.' };
     vi.stubGlobal('fetch', vi.fn(async (input: URL | string) => {
       const url = new URL(String(input));
       const json = (b: unknown) => new Response(JSON.stringify(b));
-      if (url.pathname.endsWith('/search/person')) return json({ results: [{ id: 7, name: 'Ana', profile_path: '/a.jpg' }] });
-      return json({ biography: bios[url.searchParams.get('language') ?? ''] });
+      if (url.pathname.endsWith('/search/person')) return json({ results: [{ id: 7 }] });
+      const lang = url.searchParams.get('language') ?? '';
+      return json({ id: 7, name: 'Ana', biography: bios[lang], ...(lang ? {} : { combined_credits: { cast: [{ id: 1, title: 'Film' }] } }) });
     }));
-    const [c] = await findArt({ TMDB_API_KEY: 'k' } as never, 'person', { id: 'ana', name: { en: 'Ana' } });
-    expect(c.fields.bio).toEqual({ en: 'Ana is an actor. She lives in Ohio.', th: 'อานาเป็นนักแสดง', es: 'Ana es actriz.' });
+    const r = await fillDoc({ TMDB_API_KEY: 'k' } as never, 'person', { id: 'ana', name: { en: 'Ana' }, photo: '/media/a.jpg' } as never,
+      { credits: [{ title: 'Film', tmdb_id: '1', kind: 'film' }], only: ['bio.en', 'bio.ja', 'bio.th', 'bio.es'] });
+    expect(r.patch.bio).toEqual({ en: 'Ana is an actor. She lives in Ohio.', th: 'อานาเป็นนักแสดง', es: 'Ana es actriz.' });
+    expect(r.filled).toEqual({ 'bio.en': 'tmdb', 'bio.th': 'tmdb', 'bio.es': 'tmdb' });
   });
 });

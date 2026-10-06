@@ -242,6 +242,17 @@ button.stat-tab:hover { background: var(--surface-2); }
 .btn--find { background: linear-gradient(135deg, rgb(200 107 255 / 0.35), rgb(255 122 89 / 0.35)); border-color: rgb(200 107 255 / 0.5); }
 .btn--quiet { background: none; border-color: transparent; color: var(--muted); }
 .find-art { width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 64px); padding: 22px; border-radius: 18px; border: 1px solid var(--line); background: #17121f; color: var(--text); }
+/* Fill in missing: grouped toggles. */
+.fill-dialog { width: min(560px, calc(100vw - 32px)); }
+.fill-group { display: grid; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fill-group h3 { font-size: 13px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.fill-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.fill-row__label { font-weight: 600; }
+.fill-row__choices { display: flex; gap: 6px; flex-wrap: wrap; }
+.fill-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.fill-chip input { accent-color: var(--accent); }
+.fill-chip.is-on { color: var(--text); border-color: rgb(255 255 255 / 0.25); background: rgb(255 255 255 / 0.06); }
+.fill-dialog__bar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
 .find-art::backdrop { background: rgb(5 3 10 / 0.7); backdrop-filter: blur(4px); }
 .find-art__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
 .find-art__head h2 { font-size: 20px; }

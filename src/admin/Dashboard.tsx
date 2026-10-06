@@ -32,6 +32,17 @@ export function Dashboard() {
   useEffect(loadTr, [loadTr]);
   const translateFill = useTranslateFill(loadTr);
   const needPeople = missingPhotoOrBio(data.people).length;
+  const [doPeople, setDoPeople] = useState(true);
+  const [doTranslate, setDoTranslate] = useState(true);
+  const busyFill = fillPeople.running || translateFill.running;
+  /** Headshots and bios first, so English bios TMDB adds get translated in the same pass. */
+  const fillAll = async () => {
+    if (doPeople && art?.tmdb && needPeople) await fillPeople.run(needPeople);
+    if (doTranslate) {
+      const fresh = await api.translateStatus().catch(() => tr);
+      if (fresh?.records) await translateFill.run(fresh.records);
+    }
+  };
   const images = countLinked([...data.items, ...data.people, ...data.companies]);
   useEffect(() => {
     api.ingests().then(setIngests).catch(() => {});
@@ -82,22 +93,34 @@ export function Dashboard() {
       </section>
 
       <section className="panel">
-        <h2>Translations</h2>
+        <h2>Fill in missing info</h2>
         <p className="muted small">
-          Fills empty Japanese, Thai and Spanish text: official titles, names and bios from TMDB first, then Cloudflare AI
-          translates the rest from English (summaries, bios, genre names). Only empty fields are filled. Each filled field is
-          flagged “From TMDB” or “AI-translated” on its edit page; untick the flag once you've reviewed it. Visitors see
-          “Translated automatically” under AI-translated summaries and bios.
+          Fills empty fields across the site. Only empty fields are filled; everything filled is marked “From TMDB” or
+          “AI-translated” on its edit page (untick it once you've reviewed it), and visitors see “Translated automatically”
+          under AI-translated summaries and bios. To pick and choose for one record, use “Fill in missing” on its edit page.
         </p>
-        {tr && (
-          <p className="small">
-            <b>{tr.records}</b> record{tr.records === 1 ? ' has' : 's have'} {tr.fields} empty translation{tr.fields === 1 ? '' : 's'}
-            {tr.records > 0 && tr.ai && !translateFill.running && (
-              <> — <button className="link-button" onClick={() => translateFill.run(tr.records)}>fill them in</button></>
-            )}
-          </p>
-        )}
-        {tr && !tr.ai && <p className="small text-warn">Cloudflare AI isn't connected yet: add the "ai" binding to wrangler.jsonc and deploy (see README → Translations).</p>}
+        <label className="field--check">
+          <input type="checkbox" checked={doPeople && !!art?.tmdb} disabled={!art?.tmdb || busyFill} onChange={(e) => setDoPeople(e.target.checked)} />
+          <span>
+            <b>Headshots and English bios from TMDB</b>
+            <span className="muted small"> · {art?.tmdb ? `${needPeople} ${needPeople === 1 ? 'person needs' : 'people need'} them (only when their TMDB credits match)` : 'TMDB isn\'t set up (README → Artwork)'}</span>
+          </span>
+        </label>
+        <label className="field--check">
+          <input type="checkbox" checked={doTranslate} disabled={busyFill} onChange={(e) => setDoTranslate(e.target.checked)} />
+          <span>
+            <b>Translations</b>
+            <span className="muted small"> · TMDB first, then Cloudflare AI from the English{tr ? ` · ${tr.records} record${tr.records === 1 ? '' : 's'}, ${tr.fields} empty field${tr.fields === 1 ? '' : 's'}` : ''}</span>
+          </span>
+        </label>
+        {tr && !tr.ai && <p className="small text-warn">Cloudflare AI isn't connected: add the "ai" binding to wrangler.jsonc and deploy (see README → Translations).</p>}
+        <div>
+          <button className="btn btn--primary" onClick={fillAll}
+            disabled={busyFill || !((doPeople && art?.tmdb && needPeople) || (doTranslate && tr?.records))}>
+            {busyFill ? 'Filling…' : 'Fill in'}
+          </button>
+        </div>
+        <FillPeopleProgress {...fillPeople} />
         <TranslateFillProgress {...translateFill} />
       </section>
 
@@ -123,16 +146,6 @@ export function Dashboard() {
           )}
         </p>
         <MirrorProgress {...mirror} />
-        {art?.tmdb && (
-          <p className="small">
-            <b>{needPeople}</b> {needPeople === 1 ? 'person has' : 'people have'} no headshot or bio
-            {needPeople > 0 && !fillPeople.running && (
-              <> — <button className="link-button" onClick={() => fillPeople.run(needPeople)}>fill in from TMDB</button>
-                <span className="muted"> (only empty fields; only when their TMDB credits match)</span></>
-            )}
-          </p>
-        )}
-        <FillPeopleProgress {...fillPeople} />
         {art && (
           <p className="muted small">
             “Find art” sources: TMDB (films, TV, people) {art.tmdb ? '✓' : '✗ not set up'} · IGDB (games) {art.igdb ? '✓' : '✗ not set up'} · Spotify (music) ✓ always

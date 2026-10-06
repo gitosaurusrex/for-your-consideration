@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
-import { hasText, isStoredImage, KIND_MEDIUM, type EntityType, type FieldSpec, type I18n, type ItemKind, type Sources } from '../shared/schema';
+import { isStoredImage, KIND_MEDIUM, type EntityType, type FieldSpec, type ItemKind } from '../shared/schema';
 import { api, type ArtCandidate } from './api';
 import { useAdmin } from './context';
 
@@ -52,26 +52,17 @@ export function ImageField({ spec, value, onChange, entityType, form, setFields 
   const choose = async (c: ArtCandidate) => {
     setFinding(false);
     const patch: Record<string, unknown> = { ...c.fields };
-    // A bio already written (by hand or earlier) is kept; Find art only fills an empty one.
-    const bio = form.bio as I18n | undefined;
-    const keptBio = hasText(bio) && 'bio' in patch;
-    if (keptBio) { delete patch.bio; delete patch.bio_credit; }
-    if (patch.sources) {
-      const incoming = Object.entries(patch.sources as Sources).filter(([k]) => !(keptBio && k.startsWith('bio.')));
-      patch.sources = { ...(form.sources as Sources | undefined), ...Object.fromEntries(incoming) };
-    }
     if (data.settings.keepCopies) {
       setBusy('Saving a copy…');
       for (const [k, v] of Object.entries(c.fields)) {
-        if (!['poster', 'backdrop', 'cover', 'photo', 'logo'].includes(k) || typeof v !== 'string') continue;
+        if (!['poster', 'backdrop', 'cover', 'photo', 'logo'].includes(k)) continue;
         try { patch[k] = (await api.importImage(v)).url; }
         catch (e) { toast(`Linked ${k} instead of copying it: ${(e as Error).message}`, 'error'); }
       }
       setBusy(null);
     }
     setFields(patch);
-    const what = 'bio' in patch ? 'Artwork and bio' : 'Artwork';
-    toast(`${what} set from ${c.source}${keptBio ? ' (kept your existing bio)' : ''} — remember to save`);
+    toast(`Artwork set from ${c.source} — remember to save`);
   };
 
   return (

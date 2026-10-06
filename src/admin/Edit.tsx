@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ENTITY_TYPES, fieldsFor, KIND_MEDIUM, type AnyDoc, type EntityType, type ItemKind, type Medium } from '../shared/schema';
-import { api, ApiError, type RefList } from './api';
+import { api, ApiError, type FillResult, type RefList } from './api';
+import { describeFill, FillDialog } from './FillDialog';
 import { useAdmin } from './context';
 import { FieldInput } from './fields';
 import { adminEditPath, sitePath, TYPE_LABEL } from './links';
@@ -26,7 +27,7 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const [translating, setTranslating] = useState(false);
+  const [filling, setFilling] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -64,23 +65,11 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
     }
   };
 
-  /** Fill this record's empty translations (TMDB, then Cloudflare AI) into the form, without saving. */
-  const translate = async () => {
-    setTranslating(true);
-    try {
-      const r = await api.translate(type, form);
-      const n = Object.keys(r.filled).length;
-      if (n) setForm((f) => ({ ...f!, ...r.patch }));
-      const tmdb = Object.values(r.filled).filter((s) => s === 'tmdb').length;
-      toast(n
-        ? `Filled ${n} translation${n === 1 ? '' : 's'} (${tmdb} from TMDB, ${n - tmdb} by AI). Check them, then save.`
-        : 'Nothing to fill: every translation this can do is already there.');
-      for (const note of [...r.notes, ...(r.aiStopped ? [r.aiStopped] : [])]) toast(note, 'error');
-    } catch (e) {
-      toast((e as Error).message, 'error');
-    } finally {
-      setTranslating(false);
-    }
+  /** Put a "Fill in missing" result into the form (not saved until the editor saves). */
+  const applyFill = (r: FillResult) => {
+    if (Object.keys(r.filled).length) setForm((f) => ({ ...f!, ...r.patch }));
+    toast(describeFill(r));
+    for (const note of [...r.notes, ...(r.aiStopped ? [r.aiStopped] : [])]) toast(note, 'error');
   };
 
   const remove = async () => {
@@ -104,9 +93,9 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
         <h1>{isNew ? `New ${TYPE_LABEL[type].one}` : title || id}</h1>
         <div className="admin-head__actions">
           {type !== 'company' && (
-            <button className="btn btn--find" onClick={translate} disabled={translating}
-              title="Fill empty translations: official titles, names and bios from TMDB first, then Cloudflare AI for the rest. Nothing is saved until you save.">
-              {translating ? 'Translating…' : '✨ Translate missing'}
+            <button className="btn btn--find" onClick={() => setFilling(true)}
+              title="Choose what to fill from TMDB and Cloudflare AI. Nothing is saved until you save.">
+              ✨ Fill in missing
             </button>
           )}
           {saved && <a className="btn btn--ghost" href={sitePath(type, saved)} target="_blank" rel="noreferrer">View on site ↗</a>}
@@ -125,6 +114,8 @@ function Editor({ type, id, initialKind, initialMedium }: { type: EntityType; id
           <ul>{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
         </div>
       )}
+
+      {filling && <FillDialog type={type} form={form} onFilled={applyFill} onClose={() => setFilling(false)} />}
 
       <form className="panel form" onSubmit={(e) => { e.preventDefault(); save(); }}>
         {fields.map((spec) => (

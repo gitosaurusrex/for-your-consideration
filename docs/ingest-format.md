@@ -90,7 +90,7 @@ The year shown on cards is taken from the earliest release date.
 |---|---|---|
 | `id` | | e.g. `hideo-kojima` |
 | `name` | ✅ | translated. Use the name as written in each language: Japan (`小島秀夫`, `ドゥニ・ヴィルヌーヴ`), Thailand (`คริสโตเฟอร์ โนแลน`). Latin-script names usually stay the same in Spanish, so `es` can be left out. |
-| `bio` | | translated, two or three sentences. `npm run fetch-art` (or **Find art** on the headshot in the admin) can fill it from TMDB. |
+| `bio` | | translated, two or three sentences. `npm run fetch-art` (or **Fill in missing** in the admin) can fill it from TMDB. |
 | `bio_credit` | | shown under the bio. Required when the text comes from Wikipedia, e.g. `"Bio: Wikipedia via TMDB, CC BY-SA"`; filled in automatically along with TMDB bios. |
 | `photo` | | headshot URL |
 | `photo_credit` | | shown under the photo. Required for Wikimedia Commons images, e.g. `"Photo: Jane Doe, CC BY-SA 4.0"`. |

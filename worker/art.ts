@@ -7,15 +7,15 @@ export interface ArtCandidate {
   label: string;
   detail?: string;
   preview: string;
-  fields: Record<string, string | I18n | Sources>;
+  fields: Record<string, string>;
 }
 
 export class ArtError extends Error {}
 
-const TMDB_IMG = 'https://image.tmdb.org/t/p';
+export const TMDB_IMG = 'https://image.tmdb.org/t/p';
 
 export function artStatus(env: Bindings) {
-  return { tmdb: !!env.TMDB_API_KEY, igdb: !!(env.TWITCH_CLIENT_ID && env.TWITCH_CLIENT_SECRET), spotify: true };
+  return { tmdb: !!env.TMDB_API_KEY, igdb: !!(env.TWITCH_CLIENT_ID && env.TWITCH_CLIENT_SECRET), spotify: true, ai: !!env.AI };
 }
 
 export async function tmdb(env: Bindings, path: string, params: Record<string, string | number | undefined> = {}) {
@@ -155,12 +155,6 @@ export async function translatedDetails(env: Bindings, id: number): Promise<Part
   return Object.fromEntries(TRANSLATIONS.map((l, i) => [l, got[i]]));
 }
 
-/** A person's bio from TMDB in English and each other language TMDB has, plus a credit line. */
-async function personBio(env: Bindings, id: number): Promise<ArtCandidate['fields'] | undefined> {
-  const [en, translated] = await Promise.all([tmdb(env, `/person/${id}`), translatedDetails(env, id)]);
-  return bioFields(en, translated);
-}
-
 /** Something a person is credited on in this catalog, used to confirm which TMDB person they are. */
 export interface Credit { title: string; tmdb_id?: string; kind: string }
 
@@ -216,18 +210,15 @@ export async function fillPerson(env: Bindings, p: PersonDoc, credits: Credit[])
   return out;
 }
 
+/** Headshots to choose from. (Bios come from "Fill in missing", not from here.) */
 async function person(env: Bindings, p: PersonDoc): Promise<ArtCandidate[]> {
   const { results } = await tmdb(env, '/search/person', { query: p.name?.en });
-  const hits = (results as Record<string, any>[]).filter((r) => r.profile_path).slice(0, 12);
-  // Bios for the likeliest matches (a details call each), so choosing one fills the bio too.
-  const bios = await Promise.all(hits.map((r, i) => (i < 6 ? personBio(env, r.id).catch(() => undefined) : undefined)));
-  return hits.map((r, i) => ({
+  return (results as Record<string, any>[]).filter((r) => r.profile_path).slice(0, 12).map((r) => ({
     source: 'TMDB' as const,
     label: r.name,
-    detail: [r.known_for_department, ...(r.known_for ?? []).slice(0, 2).map((k: Record<string, any>) => k.title ?? k.name), bios[i] ? '+ bio' : '']
-      .filter(Boolean).join(' · '),
+    detail: [r.known_for_department, ...(r.known_for ?? []).slice(0, 2).map((k: Record<string, any>) => k.title ?? k.name)].filter(Boolean).join(' · '),
     preview: `${TMDB_IMG}/w185${r.profile_path}`,
-    fields: { photo: `${TMDB_IMG}/w342${r.profile_path}`, ...bios[i] },
+    fields: { photo: `${TMDB_IMG}/w342${r.profile_path}` },
   }));
 }
 
