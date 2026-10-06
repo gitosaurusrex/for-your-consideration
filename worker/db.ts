@@ -24,7 +24,11 @@ export async function getSettings(db: D1Database): Promise<SiteSettings> {
   const s = structuredClone(DEFAULT_SETTINGS);
   for (const r of results) {
     if (r.key === 'media') Object.assign(s.media, JSON.parse(r.value));
-    if (r.key === 'text') Object.assign(s.text, JSON.parse(r.value));
+    if (r.key === 'text') {
+      // Only known keys, so text saved by older versions (e.g. a single `greeting`) is ignored.
+      const saved = JSON.parse(r.value) as Partial<SiteSettings['text']>;
+      for (const k of Object.keys(s.text) as (keyof SiteSettings['text'])[]) if (saved[k]?.en) s.text[k] = saved[k];
+    }
     if (r.key === 'keepCopies') s.keepCopies = JSON.parse(r.value) === true;
   }
   return s;

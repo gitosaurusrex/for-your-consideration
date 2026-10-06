@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { setCatalog, type Catalog } from '../data';
 import { api, ApiError } from './api';
 
@@ -31,11 +31,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setData(all);
   }, []);
 
-  useEffect(() => {
-    Promise.all([api.me(), reload()])
+  const load = useCallback(() => {
+    setError(null);
+    return Promise.all([api.me(), reload()])
       .then(([me]) => setEmail(me.email))
       .catch(setError);
   }, [reload]);
+
+  useEffect(() => { load(); }, [load]);
 
   const toast = useCallback((msg: string, kind: 'ok' | 'error' = 'ok') => {
     const id = Date.now() + Math.random();
@@ -43,12 +46,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), kind === 'error' ? 7000 : 3500);
   }, []);
 
+  if (error instanceof ApiError && error.status === 401) return <Login onSignedIn={load} />;
   if (error) {
     return (
       <div className="admin-gate">
         <h1>🔒 Admin</h1>
         <p>{error.message}</p>
-        {error instanceof ApiError && error.status === 401 && <button className="btn btn--primary" onClick={() => location.reload()}>Sign in again</button>}
       </div>
     );
   }
@@ -61,6 +64,39 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => <div key={t.id} className={`toast toast--${t.kind}`}>{t.msg}</div>)}
       </div>
     </Ctx.Provider>
+  );
+}
+
+function Login({ onSignedIn }: { onSignedIn: () => Promise<void> }) {
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setMessage('');
+    try {
+      await api.login(password);
+      await onSignedIn();
+    } catch (err) {
+      setMessage((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="admin">
+      <form className="admin-gate" onSubmit={submit}>
+        <h1>🔒 Admin</h1>
+        <label className="field admin-gate__field">
+          <span className="field__label">Password</span>
+          <input type="password" autoComplete="current-password" autoFocus required value={password} onChange={(e) => setPassword(e.target.value)} />
+        </label>
+        {message && <p className="text-error" role="alert">{message}</p>}
+        <button className="btn btn--primary" disabled={busy || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
+      </form>
+    </div>
   );
 }
 

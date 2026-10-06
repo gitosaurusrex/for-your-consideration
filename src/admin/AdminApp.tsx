@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { NavLink, Route, Routes } from 'react-router';
+import { api } from './api';
 import { AdminProvider, useAdmin } from './context';
 import { Dashboard } from './Dashboard';
 import { IngestPage } from './Ingest';
@@ -30,7 +31,8 @@ function Shell() {
             <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive ? 'is-active' : '')}>{label}</NavLink>
           ))}
         </nav>
-        <span className="admin-bar__who" title="Signed in with Cloudflare Access">{email}</span>
+        <span className="admin-bar__who">{email}</span>
+        <button className="btn btn--small" onClick={async () => { await api.logout().catch(() => {}); location.reload(); }}>Sign out</button>
       </header>
       <main className="admin-main">
         <Routes>
@@ -54,6 +56,8 @@ export function AdminApp() {
   useEffect(() => {
     document.title = 'Admin · For Your Consideration';
     document.documentElement.lang = 'en';
+    // The admin keeps the default palette, not the public site's time-of-day one.
+    delete document.documentElement.dataset.period;
     document.documentElement.style.setProperty('--page-h', '230');
   }, []);
   return (

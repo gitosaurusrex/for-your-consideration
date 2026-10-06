@@ -1,12 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0e0b16" />
+    <meta name="theme-color" content="#1a0f1d" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>For Your Consideration · あなたへのおすすめ</title>
+    <title>For Your Consideration · おすすめ作品集</title>
     <meta name="description" content="Hand-picked films, TV and music — in English and Japanese. 厳選した映画・ドラマ・音楽のおすすめ。" />
+    <script>
+      // Pick the time-of-day palette before first paint (same hours as periodAt in src/shared/schema.ts).
+      if (!location.pathname.startsWith('/admin')) {
+        var h = new Date().getHours();
+        document.documentElement.dataset.period = h >= 5 && h < 11 ? 'morning' : h >= 11 && h < 17 ? 'afternoon' : h >= 17 && h < 21 ? 'evening' : 'night';
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

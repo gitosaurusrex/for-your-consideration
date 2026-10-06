@@ -24,6 +24,22 @@ function fakeR2() {
   };
 }
 
+/** In-memory stand-in for a KV namespace. */
+function fakeKV() {
+  const store = new Map<string, { bytes: Uint8Array; metadata: unknown }>();
+  const stream = (bytes: Uint8Array) => new Response(bytes).body!;
+  return {
+    store,
+    writes: 0,
+    async get(key: string) { const o = store.get(key); return o ? stream(o.bytes) : null; },
+    async put(key: string, bytes: Uint8Array, opts: { metadata: unknown }) { this.writes++; store.set(key, { bytes, metadata: opts.metadata }); },
+    async getWithMetadata(key: string) {
+      const o = store.get(key);
+      return o ? { value: stream(o.bytes), metadata: o.metadata } : { value: null, metadata: null };
+    },
+  };
+}
+
 const env = (r2 = fakeR2()) => ({ MEDIA: r2, DEV_AUTH_BYPASS: 'true' }) as never;
 const local = 'http://localhost:5173';
 
@@ -71,6 +87,31 @@ describe('upload and serve', () => {
   it('404s unknown or malformed media keys', async () => {
     expect((await app.request(`${local}/media/../../secret`, {}, env())).status).toBe(404);
     expect((await app.request(`${local}/media/${'a'.repeat(24)}.png`, {}, env())).status).toBe(404);
+  });
+});
+
+describe('KV image storage', () => {
+  it('stores once and serves with a content-hash ETag', async () => {
+    const kv = fakeKV();
+    const e = { MEDIA_KV: kv, DEV_AUTH_BYPASS: 'true' } as never;
+    const { url } = (await (await app.request(`${local}/api/admin/media`, { method: 'POST', body: PNG }, e)).json()) as { url: string };
+    expect(url).toMatch(/^\/media\/[a-f0-9]{24}\.png$/);
+    await app.request(`${local}/api/admin/media`, { method: 'POST', body: PNG }, e);
+    expect(kv.writes).toBe(1);
+
+    const res = await app.request(`${local}${url}`, {}, e);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toBe('image/png');
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(PNG);
+    const etag = res.headers.get('etag')!;
+    expect((await app.request(`${local}${url}`, { headers: { 'If-None-Match': etag } }, e)).status).toBe(304);
+    expect((await app.request(`${local}/media/${'a'.repeat(24)}.png`, {}, e)).status).toBe(404);
+  });
+
+  it('explains when no storage is configured', async () => {
+    const res = await app.request(`${local}/api/admin/media`, { method: 'POST', body: PNG }, { DEV_AUTH_BYPASS: 'true' } as never);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toMatch(/isn't set up/);
   });
 });
 

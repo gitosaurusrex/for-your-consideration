@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { enabledMedia } from '../data';
 import { useLang } from '../i18n';
+import { usePeriod } from '../timeOfDay';
 import { LANGS, type Lang } from '../types';
 import { VLink, VNavLink } from './VLink';
 
@@ -63,6 +64,7 @@ function Nav() {
 export function Layout() {
   const { t } = useLang();
   const { pathname } = useLocation();
+  usePeriod(); // keeps the time-of-day palette current
   return (
     <>
       <a href="#main" className="skip-link">{t.skip}</a>
@@ -94,7 +96,7 @@ export function Layout() {
       <footer className="site-footer">
         <span>{t.siteName}</span>
         <span aria-hidden>✦</span>
-        <span lang="ja">あなたへのおすすめ</span>
+        <span lang="ja">おすすめ作品集</span>
         <small className="site-footer__credit">Some artwork via TMDB and IGDB. This site uses the TMDB API but is not endorsed or certified by TMDB.</small>
       </footer>
       <ScrollRestoration />

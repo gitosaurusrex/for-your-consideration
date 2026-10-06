@@ -17,9 +17,10 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
   - Person pages show a headshot, a bio, and everything they directed, starred in, recorded or created.
   - "More like this" on every item.
 - **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
-- **EN / 日本語 switch.** Defaults to the browser language. `?lang=ja` forces Japanese.
+- **EN / 日本語 switch.** Defaults to Japanese; a visitor's own choice is remembered. `?lang=en` forces English.
+- **Follows the time of day.** The colors and the home page greeting change with the visitor's clock: morning (5–11), afternoon (11–17), evening (17–21) and night (21–5). Morning and afternoon use light palettes, evening and night dark ones.
 - Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
-- **Admin at `/admin`**, behind a Cloudflare Access login:
+- **Admin at `/admin`**, behind a password login:
   - batch JSON ingest with a preview and conflict review
   - edit or delete any record
   - switch whole sections (e.g. Games) on or off
@@ -30,23 +31,23 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
 ```
 Browser ── GET /api/catalog, /media/* ──┐
                                         ▼
-   Cloudflare Worker (worker/)  ──  D1 database (SQLite) + R2 (images)
+   Cloudflare Worker (worker/)  ──  D1 database (SQLite) + KV or R2 (images)
                               ▲
-/admin ── Cloudflare Access login ── /api/admin/*  (JWT verified again in the Worker)
+/admin ── password login ── /api/admin/*  (signed session cookie checked by the Worker)
 ```
 
 - **Frontend:** React + Vite (`src/`). The admin is a separate lazy-loaded bundle (`src/admin/`), so visitors never download it.
 - **Backend:** one Cloudflare Worker using [Hono](https://hono.dev) (`worker/`). It serves the static site and the API.
 - **Database:** Cloudflare D1. Every record is a JSON document (`migrations/`).
-- **Images:** Cloudflare R2. Uploaded and copied artwork is served from `/media/<content-hash>.<ext>`, cached permanently.
+- **Images:** Workers KV by default, or Cloudflare R2 if you enable it. Uploaded and copied artwork is served from `/media/<content-hash>.<ext>`, cached permanently.
 - **Shared rules:** `src/shared/` holds the field definitions, validation and ingest/diff logic. Both the Worker and the admin forms use it, so there's one source of truth.
-- **Login:** Cloudflare Access (Zero Trust, free for small teams) shows an email-code login in front of `/admin`. There's no login code in the app. The Worker still verifies Access's signed token on every admin API call.
+- **Login:** one admin password, stored as a Worker secret. Signing in sets an HttpOnly, SameSite=Strict cookie signed with that password, and the Worker checks it on every admin API call. Wrong passwords are rate-limited per address.
 
 Everything runs on Cloudflare's free tier.
 
 ## Run it locally
 
-Requires Node 22.9+.
+Requires Node 22.12+.
 
 ```bash
 npm install
@@ -61,9 +62,8 @@ npm test                         # validation, ingest and login tests
 
 ### 0. Before you start
 
-- A free [Cloudflare account](https://dash.cloudflare.com/sign-up), and Node 22.9+ on your computer.
-- **Enable R2 once in the dashboard** (R2 Object Storage → *Purchase R2 / Add R2 subscription*). Wrangler can't create the image bucket until you do; it fails with "Please enable R2 through the Cloudflare Dashboard". Cloudflare asks for a payment method here, but the free tier (10 GB) isn't charged.
-- Zero Trust (used for the admin login in step 2) also asks for a payment method when you pick its **Free** plan. That isn't charged either.
+- A free [Cloudflare account](https://dash.cloudflare.com/sign-up), and Node 22.12+ on your computer.
+- Images are stored in Workers KV, which needs no payment method. (R2 is supported too, but enabling it asks for a card; see [Using R2 instead](#using-r2-instead-of-kv).)
 
 ### 1. Create the database and image storage, then deploy
 
@@ -71,10 +71,10 @@ npm test                         # validation, ingest and login tests
 npm install
 npx wrangler login
 npx wrangler d1 create fyc
-npx wrangler r2 bucket create fyc-media
+npx wrangler kv namespace create fyc-media
 ```
 
-Paste the `database_id` that `d1 create` prints into [`wrangler.jsonc`](wrangler.jsonc), replacing the zeros. The binding (`DB`) and the bucket (`fyc-media`) are already set up there. If Wrangler offers to add the database or bucket to your config for you, say **no**, so you don't end up with a duplicate entry.
+Paste the `database_id` that `d1 create` prints, and the `id` that `kv namespace create` prints, into [`wrangler.jsonc`](wrangler.jsonc), replacing the zeros. The bindings (`DB`, `MEDIA_KV`) are already set up there. If Wrangler offers to add the database or namespace to your config for you, say **no**, so you don't end up with a duplicate entry.
 
 Then deploy:
 
@@ -82,40 +82,33 @@ Then deploy:
 npm run deploy     # type-checks and builds, applies database migrations, deploys
 ```
 
+The first time, Wrangler lists the database migrations it's about to apply and asks to proceed; answer yes.
+
 Wrangler prints your site's address, `https://for-your-consideration.<your-subdomain>.workers.dev`. Open it: the site loads, but it's empty until step 4. You can add your own domain any time under **Workers & Pages → for-your-consideration → Settings → Domains & Routes**.
 
-**Optional: deploy on every push.** Under **Workers & Pages → for-your-consideration → Settings → Builds**, connect the GitHub repo:
+**Optional: deploy on every push.** First commit and push your edited `wrangler.jsonc` (the database and namespace ids aren't secret), because Builds deploys whatever is in the repo. Then, under **Workers & Pages → for-your-consideration → Settings → Builds**, connect the GitHub repo:
 - Build command: `npm run build`
 - Deploy command: `npx wrangler d1 migrations apply DB --remote && npx wrangler deploy`
 
 If a build fails on the migrations step with a permissions error, set the deploy command to `npx wrangler deploy` and run `npm run db:migrate:remote` from your computer whenever a new file appears in `migrations/`.
 
-### 2. Protect the admin with Cloudflare Access (no code)
+#### Using R2 instead of KV
 
-1. In the Cloudflare dashboard, open **Zero Trust**. The first time, choose a team name and the **Free** plan.
-2. Go to **Access controls → Applications → Add an application → Self-hosted**.
-   - **Add public hostname:** pick your site's hostname (the `workers.dev` address works, or your own domain) and enter the path `admin`.
-   - **Add public hostname** again with the same hostname and the path `api/admin`.
-   - **Policy:** action *Allow*, rule *Include → Emails →* your email address.
-     - ⚠️ Don't use "Login Methods → One-time PIN" as the Include rule. That would let anyone who can receive an email in.
-   - **Login method:** One-time PIN (a code emailed to you). If it isn't offered, add it under **Zero Trust → Settings → Authentication → Login methods**.
-3. Copy two values:
-   - **AUD tag:** open the application → **Configure** → **Additional settings** → **Application Audience (AUD) Tag**.
-   - **Team domain:** **Zero Trust → Settings** shows your team name. The domain is `<team-name>.cloudflareaccess.com`.
-4. Put them in `wrangler.jsonc` under `vars`, then run `npm run deploy` again:
+KV's free tier holds 1 GB and allows 1,000 new images a day, which is plenty for a personal catalog. R2 holds 10 GB free, but enabling it (dashboard → R2 Object Storage) asks for a payment method. To switch: run `npx wrangler r2 bucket create fyc-media`, uncomment the `r2_buckets` line in `wrangler.jsonc`, and run `npm run deploy` (it rebuilds, which picks up the change). Images already in KV aren't moved automatically.
 
-   ```jsonc
-   "vars": {
-     "ACCESS_TEAM_DOMAIN": "yourteam.cloudflareaccess.com",
-     "ACCESS_AUD": "the-long-aud-tag"
-   }
-   ```
+### 2. Set the admin password
 
-   These two values aren't secret; they're safe to commit.
+```bash
+npx wrangler secret put ADMIN_PASSWORD
+```
 
-Visit `https://<your-site>/admin`. You should see Cloudflare's login page, then the admin after entering the emailed code.
+Pick a long password (at least 12 characters; a few random words is good) and save it in your password manager. It takes effect immediately, with no redeploy needed.
 
-Until step 4 is done, the admin API refuses every request. It also re-checks Access's signed token itself, so it stays locked on any address Access doesn't cover, such as preview URLs. **If you later add your own domain, add it to the Access application too** (both paths). Then turn the `workers.dev` address off under **Settings → Domains & Routes** so there's a single place to sign in.
+Visit `https://<your-site>/admin` and sign in with it. You stay signed in on that browser for 30 days, or until you click **Sign out**.
+
+- Until the password is set, the admin API refuses every request.
+- Ten wrong passwords from one address lock that address out for 15 minutes.
+- To change the password, run the same command again. That also signs out every browser that was signed in.
 
 ### 3. Artwork lookups (optional, free keys)
 
@@ -153,7 +146,7 @@ Database migrations are applied as part of either path.
   - **✨ Find art:** pick from official artwork. Films and TV come from TMDB (and when the TMDB id is known, the choices include alternative and Japanese posters). Games come from IGDB, music from the item's Spotify link, and headshots from TMDB.
   - **⤓ Save a copy:** download a linked image into your own storage.
 
-  Stored images live in a Cloudflare R2 bucket (free up to 10 GB) and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
+  Stored images live in Workers KV (free up to 1 GB) or an R2 bucket and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
 - **Artwork for batch files:** `npm run fetch-art -- my-batch.json` fills poster/cover/headshot links into a file before you upload it. Keys go in `.env` (see `.env.example`).
 - **One-off edits:** Admin → Items / People / Studios / Genres.
   - The edit forms show English and Japanese side by side.
@@ -161,14 +154,14 @@ Database migrations are applied as part of either path.
   - Delete anything. People, studios and genres that items still use are protected.
   - "Only ones needing attention" lists records missing Japanese, art, links, photos or bios.
 - **Sections on/off:** the Dashboard switches hide Film & TV, Music or Games from the public site without deleting anything.
-- **Backups:** Dashboard → **Export everything** downloads the whole database in the ingest format (images stored in R2 are referenced by their `/media/…` paths, so the R2 bucket is part of your backup too). D1 also has point-in-time restore ("Time Travel": 7 days on the free plan, 30 on paid) via `npx wrangler d1 time-travel`.
+- **Backups:** Dashboard → **Export everything** downloads the whole database in the ingest format (stored images are referenced by their `/media/…` paths, so the KV namespace or R2 bucket is part of your backup too). D1 also has point-in-time restore ("Time Travel": 7 days on the free plan, 30 on paid) via `npx wrangler d1 time-travel`.
 
 > The example content's watch/Spotify/YouTube links are searches, Paddington 2's "free, limited time" badge is a demo, and *Outer Wilds* has no Japan release date set. Replace them with real details. Have the Japanese proofread.
 
 ## Project layout
 
 ```
-worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export, images (R2), art lookup; Access JWT check
+worker/          API (Hono): public catalog, admin CRUD, ingest, settings, export, images (KV/R2), art lookup; password login
 migrations/      D1 schema
 src/shared/      field definitions, validation, ingest diff/merge (used by Worker + admin)
 src/admin/       admin UI (lazy-loaded)

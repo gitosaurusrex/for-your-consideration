@@ -74,19 +74,35 @@ export interface SiteSettings {
   media: Record<Medium, boolean>;
   /** Save a copy of fetched/linked artwork in the site's own storage instead of linking to the source. */
   keepCopies: boolean;
-  text: { greeting: I18n; intro: I18n; signoff: I18n };
+  /** Home page text. The greeting shown depends on the visitor's time of day. */
+  text: Record<Period, I18n> & { intro: I18n; signoff: I18n };
+}
+
+export const PERIODS = ['morning', 'afternoon', 'evening', 'night'] as const;
+export type Period = (typeof PERIODS)[number];
+
+/** Morning 5–11, afternoon 11–17, evening 17–21, night 21–5, by the visitor's own clock. */
+export function periodAt(d: Date): Period {
+  const h = d.getHours();
+  if (h >= 5 && h < 11) return 'morning';
+  if (h >= 11 && h < 17) return 'afternoon';
+  if (h >= 17 && h < 21) return 'evening';
+  return 'night';
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
   media: { watch: true, listen: true, play: true },
   keepCopies: true,
   text: {
-    greeting: { en: 'Hello, friend!', ja: 'やっほー！' },
+    morning: { en: 'Good morning', ja: 'おはようございます' },
+    afternoon: { en: 'Good afternoon', ja: 'こんにちは' },
+    evening: { en: 'Good evening', ja: 'こんばんは' },
+    night: { en: 'Hello, night owl', ja: 'お疲れさまです' },
     intro: {
-      en: 'A hand-picked shelf of films, shows, music and games I think you will love. No spoilers, I promise — just a nudge in the right direction.',
-      ja: 'あなたにきっと気に入ってもらえそうな映画、ドラマ、音楽、ゲームを集めた、手作りの本棚です。ネタバレはなし。ちょっとした道しるべだけ。',
+      en: 'Welcome. This is a hand-picked shelf of films, shows, music and games worth a look. No spoilers here, just a short note on why each one made the list.',
+      ja: 'ようこそ。おすすめの映画、ドラマ、音楽、ゲームを集めた本棚です。ネタバレはなし。それぞれ選んだ理由をひとこと添えています。',
     },
-    signoff: { en: 'With love', ja: '愛をこめて' },
+    signoff: { en: 'Enjoy browsing', ja: 'どうぞごゆっくり' },
   },
 };
 

@@ -5,7 +5,7 @@ import type { Lang } from './types';
 const strings = {
   en: {
     siteName: 'For Your Consideration',
-    tagline: 'Films, shows, music & games, hand-picked for you',
+    tagline: 'Hand-picked films, shows, music & games',
     navHome: 'Home',
     navWatch: 'Watch',
     navListen: 'Listen',
@@ -98,7 +98,7 @@ const strings = {
   },
   ja: {
     siteName: 'For Your Consideration',
-    tagline: 'あなたのために選んだ映画・ドラマ・音楽・ゲーム',
+    tagline: '厳選した映画・ドラマ・音楽・ゲーム',
     navHome: 'ホーム',
     navWatch: '観る',
     navListen: '聴く',
@@ -209,7 +209,7 @@ function initialLang(): Lang {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'en' || saved === 'ja') return saved;
   } catch { /* storage unavailable */ }
-  return navigator.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  return 'ja';
 }
 
 export function LangProvider({ children }: { children: ReactNode }) {
@@ -217,10 +217,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang;
-    try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* ignore */ }
   }, [lang]);
 
+  // Only a choice the visitor made is remembered, so everyone else gets the Japanese default.
   const setLang = useCallback((l: Lang) => {
+    try { localStorage.setItem(STORAGE_KEY, l); } catch { /* ignore */ }
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setLangState(l);
       return;
