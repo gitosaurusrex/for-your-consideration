@@ -25,6 +25,7 @@ export async function getSettings(db: D1Database): Promise<SiteSettings> {
   for (const r of results) {
     if (r.key === 'media') Object.assign(s.media, JSON.parse(r.value));
     if (r.key === 'text') Object.assign(s.text, JSON.parse(r.value));
+    if (r.key === 'keepCopies') s.keepCopies = JSON.parse(r.value) === true;
   }
   return s;
 }

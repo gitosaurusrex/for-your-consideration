@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router';
 import { getItem, itemHue } from '../data';
 import { Art } from '../components/Art';
@@ -7,6 +7,7 @@ import type { EntityType } from '../shared/schema';
 import { api } from './api';
 import { useAdmin } from './context';
 import { adminEditPath, sitePath } from './links';
+import { countLinked, MirrorProgress, useMirror } from './mirror';
 
 const OUTCOME: Record<string, string> = { added: 'Added', replaced: 'Replaced', filled: 'Filled blanks', skipped: 'Skipped', unchanged: 'Unchanged', error: 'Error' };
 const TYPE_TITLE: Record<EntityType, string> = { item: 'Items', person: 'People', company: 'Studios', genre: 'Genres' };
@@ -16,7 +17,17 @@ export function IngestSummaryPage() {
   const { data } = useAdmin();
   const [row, setRow] = useState<{ created_at: string; filename: string | null; summary: IngestSummary } | null>(null);
   const [error, setError] = useState('');
+  const mirror = useMirror();
+  const startedMirror = useRef(false);
   useEffect(() => { api.ingest(Number(id)).then(setRow).catch((e) => setError(e.message)); }, [id]);
+
+  // With "keep a copy" on, linked artwork from the file is downloaded into storage right after the ingest.
+  const linked = countLinked([...data.items, ...data.people, ...data.companies]).linked;
+  useEffect(() => {
+    if (!row || startedMirror.current || !data.settings.keepCopies || !linked) return;
+    const fresh = Date.now() - new Date(row.created_at).getTime() < 10 * 60_000;
+    if (fresh) { startedMirror.current = true; mirror.run(linked); }
+  }, [row, data.settings.keepCopies, linked, mirror]);
 
   if (error) return <div className="admin-page"><p className="text-error">{error}</p></div>;
   if (!row) return <div className="admin-page"><p className="muted">Loading…</p></div>;
@@ -40,6 +51,8 @@ export function IngestSummaryPage() {
           <div key={k} className={`stat-tab stat-tab--${k}`}><strong>{counts[k]}</strong><span>{OUTCOME[k]}</span></div>
         ))}
       </div>
+
+      <MirrorProgress {...mirror} />
 
       {items.length > 0 && (
         <section className="panel">

@@ -1,2 +1,7 @@
 # Local development only — never set this in production.
 DEV_AUTH_BYPASS=true
+
+# Optional, for "Find art" in the admin (same keys as the production secrets):
+# TMDB_API_KEY=
+# TWITCH_CLIENT_ID=
+# TWITCH_CLIENT_SECRET=

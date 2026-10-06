@@ -1,8 +1,9 @@
 import { useId, useMemo, useState } from 'react';
 import { flag } from '../i18n';
-import { PLATFORMS, type Availability, type FieldSpec, type I18n, type Medium } from '../shared/schema';
+import { PLATFORMS, type Availability, type EntityType, type FieldSpec, type I18n, type Medium } from '../shared/schema';
 import { api } from './api';
 import { useAction, useAdmin } from './context';
+import { ImageField } from './ImageField';
 
 type Value = unknown;
 
@@ -59,10 +60,9 @@ function Labelled({ spec, children, htmlFor }: { spec: FieldSpec; children: Reac
   );
 }
 
-const IMAGE_KEYS = ['poster', 'backdrop', 'cover', 'photo', 'logo'];
-
-export function FieldInput({ spec, value, onChange, medium, locked }: {
+export function FieldInput({ spec, value, onChange, medium, locked, entityType, form, setFields }: {
   spec: FieldSpec; value: Value; onChange: (v: Value) => void; medium: Medium; locked?: boolean;
+  entityType: EntityType; form: Record<string, unknown>; setFields: (patch: Record<string, unknown>) => void;
 }) {
   const id = useId();
   if (spec.i18n) {
@@ -94,12 +94,13 @@ export function FieldInput({ spec, value, onChange, medium, locked }: {
         <Labelled spec={spec} htmlFor={id}>
           <div className="url-field">
             <input id={id} type="url" value={url} placeholder="https://…" onChange={(e) => onChange(e.target.value || undefined)} />
-            {url && IMAGE_KEYS.includes(spec.key) && <img className="url-field__thumb" src={url} alt="" onError={(e) => (e.currentTarget.style.opacity = '0.2')} />}
-            {url && !IMAGE_KEYS.includes(spec.key) && <a href={url} target="_blank" rel="noreferrer" className="url-field__open">Open ↗</a>}
+            {url && <a href={url} target="_blank" rel="noreferrer" className="url-field__open">Open ↗</a>}
           </div>
         </Labelled>
       );
     }
+    case 'image':
+      return <ImageField spec={spec} value={value as string | undefined} onChange={onChange} entityType={entityType} form={form} setFields={setFields} />;
     case 'bool':
       return (
         <label className="field field--check">
