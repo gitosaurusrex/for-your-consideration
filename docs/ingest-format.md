@@ -79,8 +79,8 @@ Every item has these fields:
 | `developers` | ✅ | company ids |
 | `publishers` | | company ids |
 | `creators` | | people ids for notable creators (e.g. Hideo Kojima). Each gets a page listing their games. |
-| `cover` | | image URL. `fetch-art` can fill it from IGDB. |
-| `igdb_id` | | helps `fetch-art` and duplicate detection |
+| `cover` | | image URL. `fetch-art` can fill it with the box art from the game's English Wikipedia article. |
+| `igdb_id` | | optional; helps duplicate detection |
 
 The year shown on cards is taken from the earliest release date.
 

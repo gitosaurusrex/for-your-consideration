@@ -376,7 +376,7 @@ admin.post('/translate/fill', async (c) => {
   return c.json({ filled, notes, done, remaining: stopped ? 0 : jobs.length - batch.length, ...(stopped ? { stopped } : {}) });
 });
 
-/** Look up official artwork for a record (TMDB for films/TV/people, IGDB for games, Spotify for music). */
+/** Look up official artwork for a record (TMDB for films/TV/people, Wikipedia for games, Spotify for music). */
 admin.post('/art/search', async (c) => {
   const { type, doc } = (await c.req.json()) as { type: EntityType; doc: AnyDoc };
   try {

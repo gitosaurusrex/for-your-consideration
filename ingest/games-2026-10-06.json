@@ -1,0 +1,317 @@
+{
+  "genres": [
+    {
+      "medium": "play",
+      "slug": "action",
+      "name": {
+        "en": "Action",
+        "ja": "アクション"
+      },
+      "hue": 8
+    },
+    {
+      "medium": "play",
+      "slug": "adventure",
+      "name": {
+        "en": "Adventure",
+        "ja": "アドベンチャー"
+      },
+      "hue": 160
+    },
+    {
+      "medium": "play",
+      "slug": "exploration",
+      "name": {
+        "en": "Exploration",
+        "ja": "探索"
+      },
+      "hue": 190
+    },
+    {
+      "medium": "play",
+      "slug": "horror",
+      "name": {
+        "en": "Horror",
+        "ja": "ホラー"
+      },
+      "hue": 345
+    },
+    {
+      "medium": "play",
+      "slug": "interactive-drama",
+      "name": {
+        "en": "Interactive drama",
+        "ja": "インタラクティブドラマ"
+      },
+      "hue": 220
+    }
+  ],
+  "companies": [
+    {
+      "id": "visceral-games",
+      "name": {
+        "en": "Visceral Games (EA Redwood Shores)",
+        "ja": "Visceral Games（EAレッドウッドショアーズ）"
+      },
+      "country": "US"
+    },
+    {
+      "id": "electronic-arts",
+      "name": {
+        "en": "Electronic Arts",
+        "ja": "エレクトロニック・アーツ"
+      },
+      "country": "US"
+    },
+    {
+      "id": "quantic-dream",
+      "name": {
+        "en": "Quantic Dream",
+        "ja": "クアンティック・ドリーム"
+      },
+      "country": "FR"
+    },
+    {
+      "id": "santa-monica-studio",
+      "name": {
+        "en": "Santa Monica Studio",
+        "ja": "サンタモニカスタジオ"
+      },
+      "country": "US"
+    },
+    {
+      "id": "sony-interactive-entertainment",
+      "name": {
+        "en": "Sony Interactive Entertainment",
+        "ja": "ソニー・インタラクティブエンタテインメント"
+      },
+      "country": "US"
+    },
+    {
+      "id": "kojima-productions",
+      "name": {
+        "en": "Kojima Productions",
+        "ja": "コジマプロダクション"
+      },
+      "country": "JP"
+    },
+    {
+      "id": "505-games",
+      "name": {
+        "en": "505 Games",
+        "ja": "505 Games"
+      },
+      "country": "IT"
+    }
+  ],
+  "people": [
+    {
+      "id": "glen-schofield",
+      "name": {
+        "en": "Glen Schofield",
+        "ja": "グレン・スコフィールド"
+      },
+      "bio": {
+        "en": "American game developer who co-created Dead Space at EA Redwood Shores (later Visceral Games). He went on to co-found Sledgehammer Games, working on Call of Duty, and later founded Striking Distance Studios, which made The Callisto Protocol (2022).",
+        "ja": "アメリカのゲーム開発者。EAレッドウッドショアーズ（のちのVisceral Games）で『Dead Space』を共同で生み出した。その後Sledgehammer Gamesを共同設立して「コール オブ デューティ」シリーズに携わり、さらにStriking Distance Studiosを設立して『The Callisto Protocol』（2022）を手がけた。"
+      }
+    },
+    {
+      "id": "david-cage",
+      "name": {
+        "en": "David Cage",
+        "ja": "デヴィッド・ケイジ"
+      },
+      "bio": {
+        "en": "French game director and writer, born in Mulhouse in 1969. He founded Quantic Dream in Paris in 1997 and has written and directed its story-driven games, including Fahrenheit (Indigo Prophecy), Heavy Rain, Beyond: Two Souls and Detroit: Become Human.",
+        "ja": "1969年ミュルーズ生まれ、フランスのゲームディレクター・脚本家。1997年にパリでクアンティック・ドリームを設立し、『Fahrenheit』『HEAVY RAIN 心の軋むとき』『BEYOND: Two Souls』『Detroit: Become Human』など、物語を軸にした作品の脚本と監督を務めてきた。"
+      }
+    },
+    {
+      "id": "stig-asmussen",
+      "name": {
+        "en": "Stig Asmussen",
+        "ja": "スティグ・アスムッセン"
+      },
+      "bio": {
+        "en": "American game director. After working on the first two God of War games at Santa Monica Studio, he directed God of War III. He later joined Respawn Entertainment, where he directed Star Wars Jedi: Fallen Order and Star Wars Jedi: Survivor.",
+        "ja": "アメリカのゲームディレクター。サンタモニカスタジオで「ゴッド・オブ・ウォー」シリーズ初期2作に携わったのち、『ゴッド・オブ・ウォーIII』の監督を務めた。その後Respawn Entertainmentに移り、『Star Wars ジェダイ：フォールン・オーダー』『Star Wars ジェダイ：サバイバー』を監督した。"
+      }
+    },
+    {
+      "id": "hideo-kojima",
+      "name": {
+        "en": "Hideo Kojima",
+        "ja": "小島秀夫"
+      },
+      "bio": {
+        "en": "Japanese game creator, born in Tokyo in 1963. At Konami he created the Metal Gear series, which pioneered stealth games and cinematic storytelling. In 2015 he founded the independent studio Kojima Productions, whose first game was Death Stranding (2019).",
+        "ja": "1963年東京生まれのゲームクリエイター。コナミで「メタルギア」シリーズを生み出し、ステルスゲームと映画的な演出の先駆けとなった。2015年に独立スタジオ「コジマプロダクション」を設立し、第1作『DEATH STRANDING』（2019）を発表した。"
+      }
+    },
+    {
+      "id": "yoji-shinkawa",
+      "name": {
+        "en": "Yoji Shinkawa",
+        "ja": "新川洋司"
+      },
+      "bio": {
+        "en": "Japanese artist who designed the characters and mechs of Metal Gear Solid in his distinctive ink-brush style. He is art director at Kojima Productions and worked on Death Stranding.",
+        "ja": "「メタルギア ソリッド」シリーズのキャラクターやメカを、筆を使った独特の画風でデザインしたアーティスト。コジマプロダクションのアートディレクターとして『DEATH STRANDING』にも参加している。"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "dead-space",
+      "kind": "game",
+      "title": {
+        "en": "Dead Space",
+        "ja": "Dead Space"
+      },
+      "summary": {
+        "en": "Engineer Isaac Clarke is sent to repair a giant mining ship that has gone silent in deep space. When his team docks, they find the crew gone and something horribly wrong aboard. Alone, low on supplies and armed with mining tools, Isaac has to fight his way through the ship.",
+        "ja": "宇宙の果てで消息を絶った巨大採掘船。その修理に派遣されたエンジニア、アイザック・クラークのチームが乗り込むと、船内に乗組員の姿はなく、何かが恐ろしく狂っていた。物資も乏しいなか、採掘用の工具を武器に、アイザックはたったひとりで船内を進んでいく。"
+      },
+      "note": {
+        "en": "The best sci-fi horror game there is. No HUD, just the health bar on Isaac's back, and the sound design will get under your skin. Play it with headphones, lights off.",
+        "ja": "SFホラーゲームの最高峰。画面に余計な表示はなく、体力はアイザックの背中のゲージだけ。音響が本当に怖い。ヘッドホンで、部屋を暗くして遊んでほしい。"
+      },
+      "genres": [
+        "action",
+        "horror"
+      ],
+      "release_us": "2008-10-14",
+      "platforms": [
+        "ps3",
+        "xbox-360",
+        "pc"
+      ],
+      "developers": [
+        "visceral-games"
+      ],
+      "publishers": [
+        "electronic-arts"
+      ],
+      "creators": [
+        "glen-schofield"
+      ],
+      "cover": "https://upload.wikimedia.org/wikipedia/en/5/57/Dead_Space_Box_Art.jpg"
+    },
+    {
+      "id": "heavy-rain",
+      "kind": "game",
+      "title": {
+        "en": "Heavy Rain",
+        "ja": "HEAVY RAIN 心の軋むとき"
+      },
+      "summary": {
+        "en": "A serial killer known as the Origami Killer is drowning children in a rain-soaked American city. Four very different people, among them a father whose son has gone missing, follow the case from their own angles. Every choice, and every mistake, changes how the story unfolds.",
+        "ja": "雨の降り続くアメリカの街で、子どもを狙う連続殺人鬼「折り紙殺人鬼」が人々を震え上がらせている。息子が行方不明になった父親をはじめ、立場の違う4人がそれぞれの角度から事件を追う。あらゆる選択と失敗が、物語の行方を変えていく。"
+      },
+      "note": {
+        "en": "Plays like an interactive thriller movie. Don't reload when something goes wrong: living with your choices is the whole point.",
+        "ja": "遊べるサスペンス映画のような作品。失敗してもやり直さないで。自分の選択を受け入れて進むのがこのゲームの醍醐味。"
+      },
+      "genres": [
+        "adventure",
+        "interactive-drama"
+      ],
+      "release_us": "2010-02-23",
+      "release_jp": "2010-02-18",
+      "platforms": [
+        "ps3",
+        "ps4",
+        "pc"
+      ],
+      "developers": [
+        "quantic-dream"
+      ],
+      "publishers": [
+        "sony-interactive-entertainment"
+      ],
+      "creators": [
+        "david-cage"
+      ],
+      "cover": "https://upload.wikimedia.org/wikipedia/en/c/c1/Heavy_Rain_Cover_Art.jpg"
+    },
+    {
+      "id": "death-stranding",
+      "kind": "game",
+      "title": {
+        "en": "Death Stranding",
+        "ja": "DEATH STRANDING"
+      },
+      "summary": {
+        "en": "Years after a catastrophe tore the world apart, a porter named Sam Bridges sets out on foot across a ruined America, carrying cargo between isolated cities and reconnecting them one delivery at a time. Strange, slow, and unlike anything else.",
+        "ja": "世界を引き裂いた大災害から数年。配達人サム・ブリッジスは、荒廃したアメリカを徒歩で横断し、孤立した都市へ荷物を届けながら、人と人とを再びつないでいく。奇妙で、ゆっくりで、ほかに似たもののないゲーム。"
+      },
+      "note": {
+        "en": "A walking game that quietly becomes a story about loneliness and connection. Give it a few hours to click.",
+        "ja": "歩くゲームが、いつのまにか孤独とつながりの物語になっていく。ハマるまで数時間かかるけど、待つ価値あり。"
+      },
+      "genres": [
+        "action",
+        "adventure",
+        "exploration"
+      ],
+      "release_us": "2019-11-08",
+      "release_jp": "2019-11-08",
+      "platforms": [
+        "ps4",
+        "ps5",
+        "pc"
+      ],
+      "developers": [
+        "kojima-productions"
+      ],
+      "publishers": [
+        "sony-interactive-entertainment",
+        "505-games"
+      ],
+      "creators": [
+        "hideo-kojima",
+        "yoji-shinkawa"
+      ],
+      "featured": true,
+      "added": "2026-10-03",
+      "cover": "https://upload.wikimedia.org/wikipedia/en/2/22/Death_Stranding.jpg"
+    },
+    {
+      "id": "god-of-war-iii",
+      "kind": "game",
+      "title": {
+        "en": "God of War III",
+        "ja": "ゴッド・オブ・ウォーIII"
+      },
+      "summary": {
+        "en": "Betrayed by the gods of Olympus, the Spartan warrior Kratos climbs back up Mount Olympus to take his revenge on Zeus. Huge, brutal battles against gods and titans, on a scale that still looks enormous.",
+        "ja": "オリュンポスの神々に裏切られたスパルタの戦士クレイトスは、ゼウスへの復讐を果たすため、再びオリュンポス山を登っていく。神々や巨人たちとの壮絶な戦いは、今見ても圧倒的なスケール。"
+      },
+      "note": {
+        "en": "The loudest, most spectacular finale to the original Greek trilogy. The opening alone is worth it.",
+        "ja": "ギリシャ神話三部作の締めくくりにふさわしい、ど派手なアクション。オープニングだけでも遊ぶ価値あり。"
+      },
+      "genres": [
+        "action",
+        "adventure"
+      ],
+      "release_us": "2010-03-16",
+      "release_jp": "2010-03-25",
+      "platforms": [
+        "ps3",
+        "ps4"
+      ],
+      "developers": [
+        "santa-monica-studio"
+      ],
+      "publishers": [
+        "sony-interactive-entertainment"
+      ],
+      "creators": [
+        "stig-asmussen"
+      ],
+      "cover": "https://upload.wikimedia.org/wikipedia/en/8/8b/God_of_War_III_cover_art.jpg"
+    }
+  ]
+}

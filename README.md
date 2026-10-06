@@ -112,15 +112,13 @@ Visit `https://<your-site>/admin` and sign in with it. You stay signed in on tha
 
 ### 3. Artwork lookups (optional, free keys)
 
-"Find art" in the admin looks up official artwork. Spotify covers need no key. For the rest:
+"Find art" in the admin looks up official artwork. Game covers (from Wikipedia) and music covers (from Spotify) need no key. Films, TV and headshots need a free TMDB key:
 
 ```bash
-npx wrangler secret put TMDB_API_KEY          # films, TV, headshots — themoviedb.org → Settings → API
-npx wrangler secret put TWITCH_CLIENT_ID      # game covers (IGDB) — dev.twitch.tv/console/apps → Register
-npx wrangler secret put TWITCH_CLIENT_SECRET
+npx wrangler secret put TMDB_API_KEY          # themoviedb.org → Settings → API
 ```
 
-Each `secret put` takes effect immediately, with no redeploy needed. Secrets live in Cloudflare, not in the repo. The admin Dashboard shows which sources are set up. For local development, put the same lines in `.dev.vars`.
+`secret put` takes effect immediately, with no redeploy needed. Secrets live in Cloudflare, not in the repo. The admin Dashboard shows which sources are set up. For local development, put the same lines in `.dev.vars`.
 
 ### 4. Add the content
 
@@ -143,7 +141,7 @@ Database migrations are applied as part of either path.
   - **The file format is documented in [`docs/ingest-format.md`](docs/ingest-format.md).** Paste that page into Claude to generate files.
 - **Artwork:** every image field in the admin (poster, backdrop, cover, headshot, logo) has three buttons:
   - **⬆ Upload**, or drop a file onto the field: JPEG, PNG, WebP, GIF or AVIF up to 15 MB. Files are checked by their actual bytes; SVG is refused.
-  - **✨ Find art:** pick from official artwork. Films and TV come from TMDB (and when the TMDB id is known, the choices include alternative and Japanese posters). Games come from IGDB, music from the item's Spotify link, and headshots from TMDB.
+  - **✨ Find art:** pick from official artwork. Films and TV come from TMDB (and when the TMDB id is known, the choices include alternative and Japanese posters). Games come from the box art on their English Wikipedia article, music from the item's Spotify link, and headshots from TMDB.
   - **⤓ Save a copy:** download a linked image into your own storage.
 
   Stored images live in Workers KV (free up to 1 GB) or an R2 bucket and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
@@ -178,6 +176,6 @@ src/pages/       public pages: home, browse, detail, person, studio, genre, coun
 src/components/  cards, chips, availability badge, layout
 seed/            example ingest file (everything on the site at launch)
 docs/            ingest file format
-scripts/         fetch-art (TMDB / IGDB / Spotify), seed-local
+scripts/         fetch-art (TMDB / Wikipedia / Spotify), seed-local
 tests/           vitest: validation, ingest, auth
 ```
