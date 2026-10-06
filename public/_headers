@@ -1,0 +1,15 @@
+# Response headers for Cloudflare (Workers static assets / Pages) and Netlify.
+# Vite fingerprints everything in /assets, so those files can be cached forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Keep the CMS out of search results.
+/admin/*
+  X-Robots-Tag: noindex
+  Cache-Control: no-cache

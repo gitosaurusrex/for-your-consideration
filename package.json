@@ -8,7 +8,9 @@
     "build": "npm run check:content && tsc --noEmit && vite build",
     "preview": "vite preview",
     "check:content": "node scripts/check-content.mjs",
-    "fetch-art": "node --env-file-if-exists=.env scripts/fetch-art.mjs"
+    "fetch-art": "node --env-file-if-exists=.env scripts/fetch-art.mjs",
+    "deploy": "npm run build && wrangler deploy",
+    "cf:preview": "npm run build && wrangler dev"
   },
   "dependencies": {
     "motion": "^14.0.0",
@@ -22,7 +24,8 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "typescript": "^7.0.2",
-    "vite": "^8.3.2"
+    "vite": "^8.3.2",
+    "wrangler": "^4.147.0"
   },
   "engines": {
     "node": ">=22.9"

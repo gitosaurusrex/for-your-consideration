@@ -76,6 +76,8 @@ The site is fully static: HTML, JS and images, with no server and no database. Y
 
 For the **Pages** flow instead, use build command `npm run build` and output directory `dist`. Pages automatically serves single-page apps.
 
+The full production checklist (custom domain, "Sign in with GitHub" for the CMS, repo settings, launch checks) is in **[DEPLOYING.md](DEPLOYING.md)**.
+
 ## Project layout
 
 ```

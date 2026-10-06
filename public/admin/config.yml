@@ -9,6 +9,9 @@ backend:
   name: github
   repo: gitosaurusrex/for-your-consideration
   branch: main
+  # "Sign in with GitHub": deploy https://github.com/sveltia/sveltia-cms-auth to
+  # Cloudflare, then uncomment and paste its URL (see DEPLOYING.md, step 5).
+  # base_url: https://sveltia-cms-auth.<your-subdomain>.workers.dev
 
 media_folder: public/uploads
 public_folder: /uploads
