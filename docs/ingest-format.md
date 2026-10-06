@@ -36,7 +36,6 @@ Every item has these fields:
 | `kind` | ✅ | `film`, `tv`, `song`, `album` or `game`. This decides which section it's in. |
 | `title` | ✅ | translated. Use the official release title in each language (e.g. the Japanese release title for `ja`). |
 | `summary` | ✅ | translated, spoiler-free |
-| `note` | | translated. "Why I recommend it". |
 | `genres` | ✅ | genre **slugs from the same section**, e.g. `["indie"]` on a game means the *Games* "Indie" |
 | `featured` | | `true` to show on the home page under "Start here" |
 | `added` | | date it was added to the site. Defaults to the ingest date. Kept when a record is replaced. |

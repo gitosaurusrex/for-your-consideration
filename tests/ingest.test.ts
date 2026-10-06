@@ -42,6 +42,12 @@ describe('normalize', () => {
     expect(warnings).toEqual(['"year" is set automatically from the release dates (2019)']);
   });
 
+  it('quietly drops the retired "why I picked it" note from older files', () => {
+    const { doc, warnings } = normalize('item', { ...deathStranding, note: { en: 'Old note' } });
+    expect(warnings).toEqual([]);
+    expect(doc).not.toHaveProperty('note');
+  });
+
   it('still reports fields that really are unknown', () => {
     const { warnings } = normalize('item', { ...deathStranding, rating: 5 });
     expect(warnings).toEqual(['unknown field "rating" was ignored']);

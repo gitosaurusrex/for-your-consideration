@@ -1,8 +1,8 @@
 # For Your Consideration
 
-A hand-curated recommendations site for **films, TV, music and games**, written for a friend in **English and 日本語**.
+A hand-curated recommendations site for **films, TV, music and games**, written for a friend in **English, 日本語, ไทย and Español**.
 
-- Official artwork, spoiler-free summaries, a personal "why I picked it" note, and the date each item was added
+- Official artwork, spoiler-free summaries, and the date each item was added
 - **Film & TV**:
   - director/creator and top-billed cast, year and release countries
   - a **Watch** button
