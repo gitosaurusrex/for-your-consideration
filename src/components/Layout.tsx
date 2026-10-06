@@ -1,13 +1,13 @@
-import { motion } from 'motion/react';
-import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { enabledMedia } from '../data';
 import { useLang } from '../i18n';
 import { usePeriod } from '../timeOfDay';
+import { LANG_INFO } from '../shared/schema';
 import { LANGS, type Lang } from '../types';
 import { VLink, VNavLink } from './VLink';
 
-const langLabel: Record<Lang, string> = { en: 'EN', ja: '日本語' };
 
 /** Pages call this to tint the ambient background. */
 export function usePageHue(hue: number | undefined) {
@@ -16,23 +16,89 @@ export function usePageHue(hue: number | undefined) {
   }, [hue]);
 }
 
-function LangToggle() {
+/**
+ * Language picker: one compact button showing the current language, opening a menu that lists every
+ * language in its own name (so a visitor can find theirs whatever language the page is in).
+ */
+function LangMenu() {
   const { lang, setLang, t } = useLang();
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const items = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    // Focus the current language when the menu opens.
+    items.current[LANGS.indexOf(lang)]?.focus();
+    const close = (e: PointerEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open, lang]);
+
+  const choose = (l: Lang) => {
+    setOpen(false);
+    button.current?.focus();
+    if (l !== lang) setLang(l);
+  };
+
+  const onKey = (e: KeyboardEvent) => {
+    if (!open) return;
+    const i = items.current.findIndex((el) => el === document.activeElement);
+    const move = (to: number) => { e.preventDefault(); items.current[(to + LANGS.length) % LANGS.length]?.focus(); };
+    if (e.key === 'ArrowDown') move(i + 1);
+    else if (e.key === 'ArrowUp') move(i - 1);
+    else if (e.key === 'Home') move(0);
+    else if (e.key === 'End') move(LANGS.length - 1);
+    else if (e.key === 'Escape' || e.key === 'Tab') { setOpen(false); if (e.key === 'Escape') button.current?.focus(); }
+  };
+
   return (
-    <div className="lang-toggle" role="radiogroup" aria-label={t.language}>
-      {LANGS.map((l) => (
-        <button
-          key={l}
-          role="radio"
-          aria-checked={lang === l}
-          className={lang === l ? 'is-active' : ''}
-          onClick={() => lang !== l && setLang(l)}
-          lang={l}
-        >
-          {lang === l && <motion.span layoutId="lang-thumb" className="lang-toggle__thumb" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />}
-          <span className="lang-toggle__label">{langLabel[l]}</span>
-        </button>
-      ))}
+    <div className="lang-menu" ref={wrap} onKeyDown={onKey}>
+      <button
+        ref={button}
+        type="button"
+        className="lang-menu__button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${t.language}: ${LANG_INFO[lang].name}`}
+        onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); setOpen(true); } }}
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M3 12h18M12 3c2.6 2.8 2.6 15.2 0 18M12 3c-2.6 2.8-2.6 15.2 0 18" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
+        <span lang={lang}>{LANG_INFO[lang].short}</span>
+        <svg className="lang-menu__chevron" viewBox="0 0 24 24" width="12" height="12" aria-hidden><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.ul
+            role="menu"
+            aria-label={t.language}
+            className="lang-menu__list"
+            initial={{ opacity: 0, y: -6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            transition={{ duration: 0.16 }}
+          >
+            {LANGS.map((l, i) => (
+              <li key={l} role="none">
+                <button
+                  ref={(el) => { items.current[i] = el; }}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={lang === l}
+                  lang={l}
+                  className={`lang-menu__item ${lang === l ? 'is-active' : ''}`}
+                  onClick={() => choose(l)}
+                >
+                  {LANG_INFO[l].name}
+                  {lang === l && <span className="lang-menu__check" aria-hidden>✓</span>}
+                </button>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -115,7 +181,7 @@ export function Layout() {
         <VNavLink to="/search" className="search-link" aria-label={t.advancedSearch} title={t.advancedSearch}>
           <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" /><path d="m20 20-4-4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
         </VNavLink>
-        <LangToggle />
+        <LangMenu />
       </header>
       <main id="main" className="main" key={pathname}>
         <Outlet />

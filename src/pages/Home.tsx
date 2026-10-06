@@ -61,6 +61,13 @@ export function greetingWords(text: string): { text: string; space: boolean }[] 
   return out.length ? out : [{ text, space: false }];
 }
 
+/**
+ * Splits text into the characters a reader sees (grapheme clusters), so the wave animation never pulls a
+ * Thai vowel or tone mark, or an accent, away from its letter.
+ */
+const graphemeSegmenter = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
+export const graphemes = (s: string) => (graphemeSegmenter ? [...graphemeSegmenter.segment(s)].map((g) => g.segment) : Array.from(s));
+
 // Below this, a one-line greeting would look too small, so it wraps between words instead.
 const MIN_ONE_LINE_SCALE = 0.7;
 
@@ -111,7 +118,7 @@ function Greeting({ text }: { text: string }) {
         <span key={n}>
           {w.space ? ' ' : n > 0 && <wbr />}
           <span className="greeting__word">
-            {[...w.text].map((ch) => <span key={c} className="wave" style={{ '--c': c++ } as CSSProperties}>{ch}</span>)}
+            {graphemes(w.text).map((ch) => <span key={c} className="wave" style={{ '--c': c++ } as CSSProperties}>{ch}</span>)}
           </span>
         </span>
       ))}

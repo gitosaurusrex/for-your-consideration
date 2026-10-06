@@ -121,7 +121,7 @@ export function IngestPage() {
           <h2>File format</h2>
           <p className="muted">
             One JSON object with any of <code>items</code>, <code>people</code>, <code>companies</code> (studios) and <code>genres</code>.
-            Items point at people, studios and genres by id. Translated fields take <code>{'{ "en": "…", "ja": "…" }'}</code>.
+            Items point at people, studios and genres by id. Translated fields take <code>{'{ "en": "…", "ja": "…", "th": "…", "es": "…" }'}</code> (only English is required).
             The full field list is in <code>docs/ingest-format.md</code> in the repo.
           </p>
           <div className="admin-head__actions">

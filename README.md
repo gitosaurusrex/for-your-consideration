@@ -17,7 +17,7 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
   - Person pages show a headshot, a bio, and everything they directed, starred in, recorded or created.
   - "More like this" on every item.
 - **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
-- **EN / 日本語 switch.** Defaults to Japanese; a visitor's own choice is remembered. `?lang=en` forces English.
+- **Four languages: English, 日本語, ไทย and Español.** The globe menu in the header switches between them. The site defaults to Japanese and remembers a visitor's own choice; `?lang=en` (or `ja`, `th`, `es`) in the address forces one. Content that hasn't been translated yet shows in English.
 - **Follows the time of day.** The colors and the home page greeting change with the visitor's clock: morning (5–11), afternoon (11–17), evening (17–21) and night (21–5). Morning and afternoon use light palettes, evening and night dark ones.
 - Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
 - **Admin at `/admin`**, behind a password login:
@@ -150,7 +150,7 @@ Database migrations are applied as part of either path.
 - **Headshots and bios for everyone already on the site:** Dashboard → Images → **fill in from TMDB**. It fills only empty photos and bios, and only when the person's TMDB credits include something they're credited on here, so a shared name never brings in a stranger. Anyone it can't confirm is listed with the reason; use **Find art** on their page instead.
 - **Artwork and bios for batch files:** `npm run fetch-art -- my-batch.json` fills poster, cover and headshot links, plus short bios for people from TMDB, into a file before you upload it. Keys go in `.env` (see `.env.example`). For things already on the site: **Export everything**, run the script on the export, then upload it and choose **Fill blanks in all**.
 - **One-off edits:** Admin → Items / People / Studios / Genres.
-  - The edit forms show English and Japanese side by side.
+  - The edit forms show every translated field in all four languages (English and 日本語 on top, ไทย and Español below). Only English is required; a blank translation shows English on the site, and a missing Japanese one is highlighted.
   - Pick people, studios and genres by name, or create them inline.
   - Delete anything. People, studios and genres that items still use are protected.
   - "Only ones needing attention" lists records missing Japanese, art, links, photos or bios.

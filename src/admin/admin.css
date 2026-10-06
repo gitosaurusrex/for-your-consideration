@@ -85,7 +85,7 @@ select.btn { appearance: none; cursor: pointer; }
 .field__hint { font-size: 12.5px; color: var(--faint); }
 .field--check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .field--check input { width: 17px; height: 17px; accent-color: var(--accent); }
-.i18n { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.i18n { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 10px; }
 .i18n__col { position: relative; }
 .i18n__lang { position: absolute; top: -9px; right: 10px; padding: 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--faint); background: var(--bg-2); border-radius: 4px; }
 .i18n .is-missing { border-color: rgb(255 200 97 / 0.4) !important; }

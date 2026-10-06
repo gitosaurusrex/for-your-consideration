@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import type { PersonDoc } from '../shared/schema';
+import { hasText, type PersonDoc } from '../shared/schema';
 import { api, type FillPeopleResult } from './api';
 import { useAdmin } from './context';
 
 /** People with no headshot or no bio (in either language). Same rule as the server's needsFill. */
-export const missingPhotoOrBio = (people: PersonDoc[]) => people.filter((p) => !p.photo || !(p.bio?.en || p.bio?.ja));
+export const missingPhotoOrBio = (people: PersonDoc[]) => people.filter((p) => !p.photo || !hasText(p.bio));
 
 type State = { running: boolean; done: number; total: number; filled: FillPeopleResult['filled']; failed: FillPeopleResult['failed'] };
 

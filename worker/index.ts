@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile } from '../src/shared/ingest';
-import { ENTITY_TYPES, IMAGE_FIELDS, isStoredImage, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type PersonDoc, type SiteSettings } from '../src/shared/schema';
+import { ENTITY_TYPES, hasText, IMAGE_FIELDS, isStoredImage, LANGS, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type PersonDoc, type SiteSettings } from '../src/shared/schema';
 import { normalize, referencesOf } from '../src/shared/validate';
 import { ArtError, artStatus, fillPerson, findArt, type Credit } from './art';
 import { login, logout, requireAdmin } from './auth';
@@ -140,7 +140,7 @@ admin.put('/settings', async (c) => {
     const text = { ...current.text };
     for (const k of Object.keys(text) as (keyof SiteSettings['text'])[]) {
       const v = body.text[k] as I18n | undefined;
-      if (v?.en) text[k] = { en: String(v.en).trim(), ...(v.ja ? { ja: String(v.ja).trim() } : {}) };
+      if (v?.en) text[k] = Object.fromEntries(LANGS.filter((l) => v[l]).map((l) => [l, String(v[l]).trim()])) as unknown as I18n;
     }
     stmts.push(putSetting(c.env.DB, 'text', text));
   }
@@ -258,7 +258,7 @@ admin.post('/media/mirror', async (c) => {
 admin.get('/art/status', (c) => c.json(artStatus(c.env)));
 
 /** Someone needs filling when they have no photo or no bio (in either language). */
-const needsFill = (p: PersonDoc) => !p.photo || !(p.bio?.en || p.bio?.ja);
+const needsFill = (p: PersonDoc) => !p.photo || !hasText(p.bio);
 
 /**
  * Fill in missing headshots and bios from TMDB for a few people at a time (called repeatedly by the
@@ -278,7 +278,8 @@ admin.post('/people/fill', async (c) => {
     }
   }
   const jobs = ([...all.person.values()] as PersonDoc[]).filter((p) => needsFill(p) && !skip.includes(p.id));
-  // Each person can take up to five TMDB calls, plus an image copy; four per request stays well under Workers' limits.
+  // Each person takes up to seven TMDB calls (search, up to three candidates, three translated bios) plus an image
+  // copy: eight outside requests. Four people per request is 32, under the free plan's limit of 50.
   const batch = jobs.slice(0, Math.min(Math.max(1, limit), 4));
   const filled: { id: string; label: string; got: string[] }[] = [];
   const failed: { id: string; label: string; error: string }[] = [];

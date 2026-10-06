@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { flag } from '../i18n';
-import { PLATFORMS, type Availability, type EntityType, type FieldSpec, type I18n, type Medium } from '../shared/schema';
+import { hasText, LANG_INFO, LANGS, PLATFORMS, type Availability, type EntityType, type FieldSpec, type I18n, type Lang, type Medium } from '../shared/schema';
 import { api } from './api';
 import { useAction, useAdmin } from './context';
 import { ImageField } from './ImageField';
@@ -21,29 +21,35 @@ const COUNTRIES: { code: string; name: string }[] = (() => {
   return out.sort((x, y) => x.name.localeCompare(y.name));
 })();
 
+// What an empty translation box says: it's fine to leave blank, English is shown instead.
+const UNTRANSLATED: Record<Lang, string> = {
+  en: '', ja: '未翻訳 — English will be shown', th: 'ยังไม่ได้แปล — English will be shown', es: 'Sin traducir — English will be shown',
+};
+
 export function I18nInput({ label, value, onChange, multiline, required, hint }: {
   label: string; value?: I18n; onChange: (v: I18n | undefined) => void; multiline?: boolean; required?: boolean; hint?: string;
 }) {
   const id = useId();
   const v = value ?? { en: '' };
-  const set = (lang: 'en' | 'ja', s: string) => {
+  const set = (lang: Lang, s: string) => {
     const next = { ...v, [lang]: s };
-    onChange(next.en || next.ja ? next : undefined);
+    onChange(hasText(next) ? next : undefined);
   };
   const Input = multiline ? 'textarea' : 'input';
   return (
     <div className="field">
       <label className="field__label" htmlFor={`${id}-en`}>{label}{required && <span className="req">*</span>}</label>
       <div className="i18n">
-        <div className="i18n__col">
-          <span className="i18n__lang">EN</span>
-          <Input id={`${id}-en`} value={v.en ?? ''} rows={multiline ? 5 : undefined} onChange={(e) => set('en', e.target.value)} />
-        </div>
-        <div className="i18n__col" lang="ja">
-          <span className="i18n__lang">日本語</span>
-          <Input value={v.ja ?? ''} rows={multiline ? 5 : undefined} onChange={(e) => set('ja', e.target.value)}
-            className={v.en && !v.ja ? 'is-missing' : ''} placeholder={v.en ? '未翻訳 — English will be shown' : ''} />
-        </div>
+        {LANGS.map((l) => (
+          <div key={l} className="i18n__col" lang={l}>
+            <span className="i18n__lang">{LANG_INFO[l].short}</span>
+            <Input id={`${id}-${l}`} value={v[l] ?? ''} rows={multiline ? 5 : undefined} onChange={(e) => set(l, e.target.value)}
+              aria-label={l === 'en' ? undefined : `${label} (${LANG_INFO[l].english})`}
+              // Japanese is the default language, so a missing translation is highlighted; Thai and Spanish are optional.
+              className={l === 'ja' && v.en && !v.ja ? 'is-missing' : ''}
+              placeholder={l !== 'en' && v.en ? UNTRANSLATED[l] : ''} />
+          </div>
+        ))}
       </div>
       {hint && <p className="field__hint">{hint}</p>}
     </div>

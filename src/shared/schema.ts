@@ -4,7 +4,21 @@
  * Used by the Worker (validation, ingest) and the browser (admin forms, display).
  */
 
-export type Lang = 'en' | 'ja';
+/** Site languages. English is the base every translation falls back to; Japanese is the default for visitors. */
+export const LANGS = ['en', 'ja', 'th', 'es'] as const;
+export type Lang = (typeof LANGS)[number];
+/** Languages other than English: optional translations of every text field. */
+export const TRANSLATIONS = ['ja', 'th', 'es'] as const satisfies readonly Lang[];
+
+/** How each language names itself, its short label, and the locale used for dates and country names. */
+export const LANG_INFO: Record<Lang, { name: string; short: string; locale: string; english: string }> = {
+  en: { name: 'English', short: 'EN', locale: 'en-US', english: 'English' },
+  ja: { name: '日本語', short: '日本語', locale: 'ja-JP', english: 'Japanese' },
+  th: { name: 'ไทย', short: 'ไทย', locale: 'th-TH', english: 'Thai' },
+  es: { name: 'Español', short: 'ES', locale: 'es-ES', english: 'Spanish' },
+};
+
+export const isLang = (v: unknown): v is Lang => typeof v === 'string' && (LANGS as readonly string[]).includes(v);
 export type Medium = 'watch' | 'listen' | 'play';
 export type ItemKind = 'film' | 'tv' | 'song' | 'album' | 'game';
 export type EntityType = 'item' | 'person' | 'company' | 'genre';
@@ -14,8 +28,11 @@ export const ENTITY_TYPES: EntityType[] = ['genre', 'company', 'person', 'item']
 export const KIND_MEDIUM: Record<ItemKind, Medium> = { film: 'watch', tv: 'watch', song: 'listen', album: 'listen', game: 'play' };
 export const MEDIUM_KINDS: Record<Medium, ItemKind[]> = { watch: ['film', 'tv'], listen: ['song', 'album'], play: ['game'] };
 
-/** A translated string: English is required wherever the field is required; Japanese falls back to English. */
-export type I18n = { en: string; ja?: string };
+/** A translated string: English is required wherever the field is required; every other language falls back to English. */
+export type I18n = { en: string; ja?: string; th?: string; es?: string };
+
+/** True when a translated field has text in any language. */
+export const hasText = (v?: Partial<I18n>) => LANGS.some((l) => !!v?.[l]);
 
 export interface Availability {
   /** Free to watch (e.g. Tubi, YouTube, Pluto). */
@@ -94,15 +111,17 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   media: { watch: true, listen: true, play: true },
   keepCopies: true,
   text: {
-    morning: { en: 'Good morning', ja: 'おはようございます' },
-    afternoon: { en: 'Good afternoon', ja: 'こんにちは' },
-    evening: { en: 'Good evening', ja: 'こんばんは' },
-    night: { en: 'Hello, night owl', ja: 'お疲れさまです' },
+    morning: { en: 'Good morning', ja: 'おはようございます', th: 'สวัสดีตอนเช้า', es: 'Buenos días' },
+    afternoon: { en: 'Good afternoon', ja: 'こんにちは', th: 'สวัสดีตอนบ่าย', es: 'Buenas tardes' },
+    evening: { en: 'Good evening', ja: 'こんばんは', th: 'สวัสดีตอนเย็น', es: 'Buenas tardes' },
+    night: { en: 'Hello, night owl', ja: 'お疲れさまです', th: 'สวัสดีตอนค่ำ', es: 'Buenas noches' },
     intro: {
       en: 'Welcome. This is a hand-picked shelf of films, shows, music and games worth a look. No spoilers here, just a short note on why each one made the list.',
       ja: 'ようこそ。おすすめの映画、ドラマ、音楽、ゲームを集めた本棚です。ネタバレはなし。それぞれ選んだ理由をひとこと添えています。',
+      th: 'ยินดีต้อนรับ ที่นี่รวบรวมภาพยนตร์ ซีรีส์ เพลง และเกมที่คัดสรรมาแล้วว่าน่าลอง ไม่มีสปอยล์ มีเพียงบันทึกสั้น ๆ ว่าทำไมแต่ละเรื่องถึงได้อยู่ในรายการนี้',
+      es: 'Te doy la bienvenida. Esta es una selección hecha a mano de películas, series, música y juegos que vale la pena conocer. Sin spoilers: solo una nota breve sobre por qué cada uno está en la lista.',
     },
-    signoff: { en: 'Enjoy browsing', ja: 'どうぞごゆっくり' },
+    signoff: { en: 'Enjoy browsing', ja: 'どうぞごゆっくり', th: 'ขอให้สนุกกับการเลือกชม', es: 'Disfruta explorando' },
   },
 };
 
@@ -150,7 +169,7 @@ const f = (key: string, label: string, type: FieldType, extra: Partial<FieldSpec
 const ITEM_HEAD: FieldSpec[] = [
   f('id', 'ID (URL slug)', 'id', { hint: 'Lowercase letters, numbers and dashes. Leave blank to generate from the English title.' }),
   f('kind', 'Type', 'select', { required: true, options: SELECT_KINDS }),
-  f('title', 'Title', 'text', { i18n: true, required: true, hint: 'Use the official Japanese release title for 日本語.' }),
+  f('title', 'Title', 'text', { i18n: true, required: true, hint: 'Use the official release title in each language (e.g. the Japanese release title for 日本語). Leave a language blank to show English.' }),
   f('summary', 'Spoiler-free summary', 'textarea', { i18n: true, required: true }),
   f('note', 'Why I recommend it', 'textarea', { i18n: true }),
   f('genres', 'Genres', 'refs', { to: 'genre', required: true }),
