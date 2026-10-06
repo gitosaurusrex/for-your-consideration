@@ -20,11 +20,12 @@ Items point at genres, studios and people **by id**. Those records can be in the
 | Thing | Format |
 |---|---|
 | **id** | lowercase letters, numbers, dashes: `hideo-kojima`. Optional; generated from the English title/name if missing. Permanent once created (it's the URL). |
-| **Translated text** | `{ "en": "…", "ja": "…" }`. A plain string means English only. Missing Japanese falls back to English and is flagged in the admin. |
+| **Translated text** | `{ "en": "…", "ja": "…", "th": "…", "es": "…" }` (English, Japanese, Thai, Spanish). Only `en` is required, and a plain string means English only. Any missing translation falls back to English; a missing Japanese one is also flagged in the admin. |
 | **Lists** | JSON arrays (`["ps4", "pc"]`). A comma-separated string also works. |
 | **Dates** | `YYYY-MM-DD` |
 | **Countries** | 2-letter codes: `US`, `JP`, `GB`, `KR`, `FR`… Names are translated automatically on the site. |
 | **Links** | full `https://` URLs |
+| **Source flags** | optional on any record: `"sources": { "summary.th": "ai", "title.ja": "tmdb" }` marks which translations came from Cloudflare AI or TMDB (keys are `field.language`). The site sets these itself when it fills translations; the admin shows them as checkboxes. A flag for a field that's empty is dropped. With **Fill blanks**, a flag only comes along with the text it describes. |
 | **Images** | a full `https://` image link, or a `/media/…` path for an image already stored on the site (e.g. from an export). With "Keep a copy of artwork" on, linked images are downloaded into the site's storage right after the ingest. |
 
 ## items
@@ -34,9 +35,8 @@ Every item has these fields:
 | Field | Required | Notes |
 |---|---|---|
 | `kind` | ✅ | `film`, `tv`, `song`, `album` or `game`. This decides which section it's in. |
-| `title` | ✅ | translated. Use the official Japanese release title for `ja`. |
+| `title` | ✅ | translated. Use the official release title in each language (e.g. the Japanese release title for `ja`). |
 | `summary` | ✅ | translated, spoiler-free |
-| `note` | | translated. "Why I recommend it". |
 | `genres` | ✅ | genre **slugs from the same section**, e.g. `["indie"]` on a game means the *Games* "Indie" |
 | `featured` | | `true` to show on the home page under "Start here" |
 | `added` | | date it was added to the site. Defaults to the ingest date. Kept when a record is replaced. |
@@ -89,8 +89,8 @@ The year shown on cards is taken from the earliest release date.
 | Field | Required | Notes |
 |---|---|---|
 | `id` | | e.g. `hideo-kojima` |
-| `name` | ✅ | translated. Use the name as written in Japan (`小島秀夫`, `ドゥニ・ヴィルヌーヴ`). |
-| `bio` | | translated, two or three sentences. `npm run fetch-art` (or **Find art** on the headshot in the admin) can fill it from TMDB. |
+| `name` | ✅ | translated. Use the name as written in each language: Japan (`小島秀夫`, `ドゥニ・ヴィルヌーヴ`), Thailand (`คริสโตเฟอร์ โนแลน`). Latin-script names usually stay the same in Spanish, so `es` can be left out. |
+| `bio` | | translated, two or three sentences. `npm run fetch-art` (or **Fill in missing** in the admin) can fill it from TMDB. |
 | `bio_credit` | | shown under the bio. Required when the text comes from Wikipedia, e.g. `"Bio: Wikipedia via TMDB, CC BY-SA"`; filled in automatically along with TMDB bios. |
 | `photo` | | headshot URL |
 | `photo_credit` | | shown under the photo. Required for Wikimedia Commons images, e.g. `"Photo: Jane Doe, CC BY-SA 4.0"`. |
@@ -133,4 +133,4 @@ Everything is applied in a single transaction, and the summary page shows the ne
 
 ## Generating a file with Claude
 
-Paste this page and say something like: *"Make an ingest file for these films: …, with spoiler-free summaries and short bios for the directors, in English and Japanese, using official Japanese titles."* Then run `npm run fetch-art -- file.json` to add official artwork. Check the Japanese, watch links and dates before uploading.
+Paste this page and say something like: *"Make an ingest file for these films: …, with spoiler-free summaries and short bios for the directors, in English, Japanese, Thai and Spanish, using each country's official release titles."* Then run `npm run fetch-art -- file.json` to add official artwork. Check the translations, watch links and dates before uploading. To add Thai or Spanish to things already on the site, upload a file with just those translations and choose **Fill blanks in all**.

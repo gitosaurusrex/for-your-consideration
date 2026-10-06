@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyze, diff, fillBlanks, writesFor, type Existing } from '../src/shared/ingest';
+import type { ItemDoc } from '../src/shared/schema';
 import { normalize } from '../src/shared/validate';
 import type { AnyDoc } from '../src/shared/schema';
 
@@ -20,11 +21,65 @@ const deathStranding = {
   developers: ['kojima-productions'], creators: ['hideo-kojima'],
 };
 
+describe('source flags', () => {
+  const base = { ...deathStranding, title: { en: 'Death Stranding', ja: 'デス・ストランディング' } };
+
+  it('keep flags for text that is there and drop flags for empty text', () => {
+    const { doc, warnings } = normalize('item', { ...base, sources: { 'title.ja': 'tmdb', 'summary.th': 'ai' } });
+    expect(warnings).toEqual([]);
+    expect((doc as ItemDoc).sources).toEqual({ 'title.ja': 'tmdb' });
+  });
+
+  it('report malformed flags', () => {
+    const { warnings } = normalize('item', { ...base, sources: { 'title.ja': 'robot', 'platforms.en': 'ai' } });
+    expect(warnings).toHaveLength(2);
+  });
+
+  it('survive flattening for diffs (keys contain a dot)', () => {
+    const merged = fillBlanks({ id: 'x', title: { en: 'A' } } as never, { id: 'x', title: { en: 'A', th: 'เอ' }, sources: { 'title.th': 'ai' } } as never) as ItemDoc;
+    expect(merged.sources).toEqual({ 'title.th': 'ai' });
+  });
+
+  it('only come along with text that Fill blanks actually fills', () => {
+    const existing = { id: 'x', title: { en: 'A', th: 'ของฉัน' }, summary: { en: 'S' } };
+    const incoming = { id: 'x', title: { en: 'A', th: 'เอ' }, summary: { en: 'S', es: 'Hola' }, sources: { 'title.th': 'ai', 'summary.es': 'ai' } };
+    const merged = fillBlanks(existing as never, incoming as never) as ItemDoc;
+    expect(merged.title.th).toBe('ของฉัน');
+    expect(merged.sources).toEqual({ 'summary.es': 'ai' });
+  });
+});
+
 describe('normalize', () => {
   it('accepts friendly input and derives medium, year and id', () => {
     const { doc, errors } = normalize('item', { ...deathStranding, id: undefined, platforms: 'PS4, PC', title: 'Death Stranding' });
     expect(errors).toEqual([]);
     expect(doc).toMatchObject({ id: 'death-stranding', medium: 'play', year: 2019, platforms: ['ps4', 'pc'], title: { en: 'Death Stranding' } });
+  });
+
+  it('accepts a saved game as-is, including the year it derived', () => {
+    // What the admin sends back on Save (and what Export writes): the stored record, medium and year included.
+    const saved = { ...deathStranding, medium: 'play', year: 2019, added: '2026-01-01' };
+    const { doc, errors, warnings } = normalize('item', saved);
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(doc).toMatchObject({ year: 2019, medium: 'play' });
+  });
+
+  it('keeps a game\'s year in step with its release dates', () => {
+    const { doc, warnings } = normalize('item', { ...deathStranding, year: 1999 });
+    expect(doc).toMatchObject({ year: 2019 });
+    expect(warnings).toEqual(['"year" is set automatically from the release dates (2019)']);
+  });
+
+  it('quietly drops the retired "why I picked it" note from older files', () => {
+    const { doc, warnings } = normalize('item', { ...deathStranding, note: { en: 'Old note' } });
+    expect(warnings).toEqual([]);
+    expect(doc).not.toHaveProperty('note');
+  });
+
+  it('still reports fields that really are unknown', () => {
+    const { warnings } = normalize('item', { ...deathStranding, rating: 5 });
+    expect(warnings).toEqual(['unknown field "rating" was ignored']);
   });
 
   it('reports readable errors', () => {

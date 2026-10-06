@@ -27,7 +27,12 @@ export async function getSettings(db: D1Database): Promise<SiteSettings> {
     if (r.key === 'text') {
       // Only known keys, so text saved by older versions (e.g. a single `greeting`) is ignored.
       const saved = JSON.parse(r.value) as Partial<SiteSettings['text']>;
-      for (const k of Object.keys(s.text) as (keyof SiteSettings['text'])[]) if (saved[k]?.en) s.text[k] = saved[k];
+      for (const k of Object.keys(s.text) as (keyof SiteSettings['text'])[]) {
+        const v = saved[k];
+        if (!v?.en) continue;
+        // Untouched default text picks up translations added later (e.g. new languages); edited text is kept as written.
+        s.text[k] = v.en === DEFAULT_SETTINGS.text[k].en ? { ...DEFAULT_SETTINGS.text[k], ...v } : v;
+      }
     }
     if (r.key === 'keepCopies') s.keepCopies = JSON.parse(r.value) === true;
   }

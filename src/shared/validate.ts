@@ -1,6 +1,6 @@
 import {
-  fieldsFor, isDate, isHttpUrl, MEDIA_PREFIX, KIND_MEDIUM, PLATFORMS, slugify, genreKey,
-  type AnyDoc, type EntityType, type FieldSpec, type I18n, type ItemKind, type Medium,
+  fieldsFor, isDate, isHttpUrl, isLang, LANG_INFO, LANGS, MEDIA_PREFIX, KIND_MEDIUM, PLATFORMS, slugify, genreKey, TRANSLATIONS,
+  type AnyDoc, type EntityType, type FieldSpec, type I18n, type ItemKind, type Medium, type Sources,
 } from './schema';
 
 export interface Normalized<T = AnyDoc> {
@@ -65,7 +65,12 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
     }
   }
   const fields = fieldsFor(type, kind);
-  const known = new Set(fields.map((s) => s.key).concat(type === 'item' ? ['medium'] : []));
+  // Fields the site fills in itself: an item's medium (from its kind) and a game's year (from its release dates).
+  // Saved records and exports include them, so they're accepted here rather than reported as unknown.
+  const derived = type === 'item' ? ['medium', ...(KIND_MEDIUM[kind!] === 'play' ? ['year'] : [])] : [];
+  // Fields the site no longer has. Older exports and files still contain them, so they're dropped without a warning.
+  const retired = type === 'item' ? ['note'] : [];
+  const known = new Set(fields.map((s) => s.key).concat(derived, retired, ['sources']));
   for (const k of Object.keys(input)) if (!known.has(k)) warnings.push(`unknown field "${k}" was ignored`);
 
   const doc: Record<string, unknown> = {};
@@ -76,12 +81,18 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
     if (spec.required && missing) errors.push(`missing required field "${spec.key}${spec.i18n ? '.en' : ''}"`);
   }
 
+  const sources = readSources(input.sources, fields, doc, warnings);
+  if (sources) doc.sources = sources;
+
   if (type === 'item') {
     doc.medium = KIND_MEDIUM[kind!];
     if (doc.medium === 'play') {
       const dates = [doc.release_us, doc.release_jp].filter(Boolean) as string[];
       if (!dates.length) errors.push('a game needs a US or Japan release date');
       else doc.year = Number(dates.sort()[0].slice(0, 4));
+      if (input.year != null && doc.year != null && Number(input.year) !== doc.year) {
+        warnings.push(`"year" is set automatically from the release dates (${doc.year})`);
+      }
     }
     if (input.medium != null && input.medium !== doc.medium) warnings.push(`"medium" is set automatically from "kind" (${doc.medium})`);
   }
@@ -105,15 +116,39 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
   return { doc: errors.length ? null : (compact(doc) as unknown as AnyDoc), errors, warnings };
 }
 
+/**
+ * Source flags ("summary.th": "ai") for this record's translated fields. A flag for text that isn't there is
+ * dropped silently (the text was cleared); a malformed one is reported.
+ */
+function readSources(v: unknown, fields: FieldSpec[], doc: Record<string, unknown>, warnings: string[]): Sources | undefined {
+  if (v == null) return undefined;
+  if (typeof v !== 'object' || Array.isArray(v)) { warnings.push('"sources" should be an object like { "summary.th": "ai" }; it was ignored'); return undefined; }
+  const translated = new Set(fields.filter((f) => f.i18n).map((f) => f.key));
+  const out: Sources = {};
+  for (const [k, src] of Object.entries(v as Record<string, unknown>)) {
+    const dot = k.lastIndexOf('.');
+    const field = k.slice(0, dot), lang = k.slice(dot + 1);
+    if (dot < 1 || !translated.has(field) || !isLang(lang) || (src !== 'tmdb' && src !== 'ai')) {
+      warnings.push(`source flag "${k}": ${JSON.stringify(src)} was ignored (expected "field.lang": "tmdb" or "ai")`);
+      continue;
+    }
+    if ((doc[field] as I18n | undefined)?.[lang]) out[k] = src;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function readField(spec: FieldSpec, v: unknown, errors: string[], warnings: string[]): unknown {
   const where = `"${spec.key}"`;
   if (spec.i18n) {
     if (v == null || v === '') return undefined;
     if (typeof v === 'string') return { en: v.trim() } satisfies I18n;
-    if (typeof v !== 'object' || Array.isArray(v)) { errors.push(`${where} should be text or { "en": …, "ja": … }`); return undefined; }
+    if (typeof v !== 'object' || Array.isArray(v)) { errors.push(`${where} should be text or { "en": …, "ja": …, "th": …, "es": … }`); return undefined; }
     const o = v as Record<string, unknown>;
-    const out = compact({ en: asString(o.en) ?? '', ja: asString(o.ja) });
-    if (!out.en && out.ja) { errors.push(`${where} has Japanese but no English`); return undefined; }
+    for (const k of Object.keys(o)) if (!isLang(k)) warnings.push(`unknown language "${spec.key}.${k}" was ignored (use ${LANGS.join(', ')})`);
+    const out = compact(Object.fromEntries(LANGS.map((l) => [l, asString(o[l]) ?? (l === 'en' ? '' : undefined)]))) as I18n;
+    const others = TRANSLATIONS.filter((l) => out[l]);
+    if (!out.en && others.length) { errors.push(`${where} has ${others.map((l) => LANG_INFO[l].english).join(' and ')} but no English`); return undefined; }
+    // Japanese is the site's default language, so a missing Japanese translation is worth a nudge; Thai and Spanish are optional.
     if (out.en && !out.ja && spec.type !== 'id') warnings.push(`${where} has no Japanese yet (English will be shown)`);
     return out.en ? out : undefined;
   }

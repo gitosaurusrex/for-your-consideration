@@ -66,18 +66,26 @@ async function titles() {
 function shortBio(text, lang) {
   const para = text?.split(/\n+/).map((s) => s.trim()).find((s) => s && !/^from wikipedia/i.test(s) && !/^description above from/i.test(s));
   if (!para) return undefined;
-  const sentences = lang === 'ja' ? para.match(/[^。！？]+[。！？」]*/g) ?? [para] : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-Z"“(])/);
-  const limit = lang === 'ja' ? 220 : 450;
+  const sentences =
+    lang === 'ja' ? para.match(/[^。！？]+[。！？」]*/g) ?? [para]
+    : lang === 'th' ? para.split(/\s+/) // Thai has no full stops; a space separates phrases and sentences.
+    : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-ZÁÉÍÓÚÑ¿¡"“(])/);
+  const limit = lang === 'ja' ? 220 : lang === 'th' ? 260 : 450;
+  const join = lang === 'ja' ? '' : ' ';
   let out = '';
-  for (const s of sentences.slice(0, 3)) {
-    const next = out ? (lang === 'ja' ? out + s : `${out} ${s}`) : s;
+  for (const s of sentences.slice(0, lang === 'th' ? 40 : 3)) {
+    const next = out ? out + join + s : s;
     if (out && next.length > limit) break;
     out = next;
   }
   return out.trim() || undefined;
 }
 
-const hasBio = (p) => (typeof p.bio === 'string' ? !!p.bio : !!(p.bio?.en || p.bio?.ja));
+// The site's other languages, and the TMDB locale for each (same as LANG_INFO in src/shared/schema.ts).
+const TRANSLATIONS = { ja: 'ja-JP', th: 'th-TH', es: 'es-ES' };
+const LANG_NAMES = { ja: '日本語', th: 'ไทย', es: 'ES' };
+
+const hasBio = (p) => (typeof p.bio === 'string' ? !!p.bio : ['en', ...Object.keys(TRANSLATIONS)].some((l) => p.bio?.[l]));
 
 async function people() {
   const list = (file.people ?? []).filter((p) => force || !p.photo || !hasBio(p));
@@ -90,14 +98,23 @@ async function people() {
       const got = [];
       if (hit.profile_path && (force || !person.photo)) { person.photo = `${TMDB_IMG}/w342${hit.profile_path}`; got.push('photo'); }
       if (force || !hasBio(person)) {
-        const [d, dJa] = await Promise.all([tmdb(`/person/${hit.id}`), tmdb(`/person/${hit.id}`, { language: 'ja-JP' }).catch(() => ({}))]);
+        const langs = Object.entries(TRANSLATIONS);
+        const [d, ...other] = await Promise.all([
+          tmdb(`/person/${hit.id}`),
+          ...langs.map(([, locale]) => tmdb(`/person/${hit.id}`, { language: locale }).catch(() => ({}))),
+        ]);
         const bioEn = shortBio(d.biography, 'en');
         if (bioEn) {
-          // TMDB falls back to the English text when there's no Japanese bio; only keep a real translation.
-          const bioJa = dJa.biography && dJa.biography !== d.biography ? shortBio(dJa.biography, 'ja') : undefined;
-          person.bio = { en: bioEn, ...(bioJa ? { ja: bioJa } : {}) };
-          person.bio_credit = /wikipedia/i.test(`${d.biography} ${dJa.biography ?? ''}`) ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB';
-          got.push(bioJa ? 'bio (EN + 日本語)' : 'bio (EN)');
+          person.bio = { en: bioEn };
+          langs.forEach(([l], i) => {
+            // TMDB can return the English text when there's no translation; only keep a real one.
+            const text = other[i].biography;
+            const short = text && text !== d.biography ? shortBio(text, l) : undefined;
+            if (short) person.bio[l] = short;
+          });
+          const all = [d.biography, ...other.map((o) => o.biography ?? '')].join(' ');
+          person.bio_credit = /wikipedia/i.test(all) ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB';
+          got.push(`bio (EN${langs.filter(([l]) => person.bio[l]).map(([l]) => ` + ${LANG_NAMES[l]}`).join('')})`);
         }
       }
       if (!got.length) { console.log(`  ? ${en(person.name)}: TMDB has no photo or bio for ${hit.name}`); continue; }

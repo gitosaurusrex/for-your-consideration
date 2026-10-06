@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { flag } from '../i18n';
-import { PLATFORMS, type Availability, type EntityType, type FieldSpec, type I18n, type Medium } from '../shared/schema';
+import { hasText, LANG_INFO, LANGS, PLATFORMS, sourceKey, type Availability, type EntityType, type FieldSpec, type I18n, type Lang, type Medium, type Source, type Sources } from '../shared/schema';
 import { api } from './api';
 import { useAction, useAdmin } from './context';
 import { ImageField } from './ImageField';
@@ -21,30 +21,78 @@ const COUNTRIES: { code: string; name: string }[] = (() => {
   return out.sort((x, y) => x.name.localeCompare(y.name));
 })();
 
-export function I18nInput({ label, value, onChange, multiline, required, hint }: {
+// What an empty translation box says: it's fine to leave blank, English is shown instead.
+const UNTRANSLATED: Record<Lang, string> = {
+  en: '', ja: '未翻訳 — English will be shown', th: 'ยังไม่ได้แปล — English will be shown', es: 'Sin traducir — English will be shown',
+};
+const SOURCE_LABEL: Record<Source, string> = { tmdb: 'TMDB', ai: 'AI' };
+
+/**
+ * A translated text field: one box, with a tab per language. Each tab shows whether that language has text and
+ * where it came from (TMDB or Cloudflare AI). Under the box, two checkboxes the editor controls record the source
+ * of the selected language's text; they're ticked when TMDB or AI fills it, and you untick them once you've
+ * reviewed or rewritten it. Without `sources`, the checkboxes are hidden (e.g. home page text).
+ */
+export function I18nInput({ label, value, onChange, multiline, required, hint, field, sources, onSourcesChange }: {
   label: string; value?: I18n; onChange: (v: I18n | undefined) => void; multiline?: boolean; required?: boolean; hint?: string;
+  field?: string; sources?: Sources; onSourcesChange?: (s: Sources | undefined) => void;
 }) {
   const id = useId();
+  const [lang, setLang] = useState<Lang>('en');
   const v = value ?? { en: '' };
-  const set = (lang: 'en' | 'ja', s: string) => {
-    const next = { ...v, [lang]: s };
-    onChange(next.en || next.ja ? next : undefined);
+  const set = (l: Lang, s: string) => {
+    const next = { ...v, [l]: s };
+    onChange(hasText(next) ? next : undefined);
   };
+  const sourceOf = (l: Lang) => (field ? sources?.[sourceKey(field, l)] : undefined);
+  const setSource = (l: Lang, src: Source | undefined) => {
+    if (!field || !onSourcesChange) return;
+    const next = { ...sources };
+    if (src) next[sourceKey(field, l)] = src; else delete next[sourceKey(field, l)];
+    onSourcesChange(Object.keys(next).length ? next : undefined);
+  };
+  // Japanese is the default language, so a missing translation is highlighted; Thai and Spanish are optional.
+  const missingJa = !!v.en && !v.ja;
   const Input = multiline ? 'textarea' : 'input';
+  const current = sourceOf(lang);
   return (
     <div className="field">
-      <label className="field__label" htmlFor={`${id}-en`}>{label}{required && <span className="req">*</span>}</label>
-      <div className="i18n">
-        <div className="i18n__col">
-          <span className="i18n__lang">EN</span>
-          <Input id={`${id}-en`} value={v.en ?? ''} rows={multiline ? 5 : undefined} onChange={(e) => set('en', e.target.value)} />
-        </div>
-        <div className="i18n__col" lang="ja">
-          <span className="i18n__lang">日本語</span>
-          <Input value={v.ja ?? ''} rows={multiline ? 5 : undefined} onChange={(e) => set('ja', e.target.value)}
-            className={v.en && !v.ja ? 'is-missing' : ''} placeholder={v.en ? '未翻訳 — English will be shown' : ''} />
+      <div className="i18n__head">
+        <label className="field__label" htmlFor={`${id}-${lang}`}>{label}{required && <span className="req">*</span>}</label>
+        <div className="i18n__tabs" role="tablist" aria-label={`${label}: language`}>
+          {LANGS.map((l) => {
+            const has = !!v[l];
+            const src = sourceOf(l);
+            return (
+              <button key={l} type="button" role="tab" aria-selected={lang === l} aria-controls={`${id}-${l}`}
+                className={`i18n__tab ${lang === l ? 'is-active' : ''} ${l === 'ja' && missingJa ? 'is-missing' : ''}`}
+                title={`${LANG_INFO[l].english}: ${has ? (src === 'ai' ? 'AI-translated' : src === 'tmdb' ? 'from TMDB' : 'written') : 'empty'}`}
+                onClick={() => setLang(l)}>
+                <span className={`i18n__dot ${has ? 'is-filled' : ''}`} aria-hidden />
+                <span lang={l}>{LANG_INFO[l].short}</span>
+                {has && src && <span className={`i18n__src i18n__src--${src}`}>{SOURCE_LABEL[src]}</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
+      <Input key={lang} id={`${id}-${lang}`} lang={lang} role="tabpanel" value={v[lang] ?? ''} rows={multiline ? 5 : undefined}
+        onChange={(e) => set(lang, e.target.value)}
+        aria-label={lang === 'en' ? undefined : `${label} (${LANG_INFO[lang].english})`}
+        className={lang === 'ja' && missingJa ? 'is-missing' : ''}
+        placeholder={lang !== 'en' && v.en ? UNTRANSLATED[lang] : ''} />
+      {field && onSourcesChange && v[lang] && (
+        <div className="i18n__sources">
+          <label className="field--check small">
+            <input type="checkbox" checked={current === 'tmdb'} onChange={(e) => setSource(lang, e.target.checked ? 'tmdb' : undefined)} />
+            From TMDB
+          </label>
+          <label className="field--check small">
+            <input type="checkbox" checked={current === 'ai'} onChange={(e) => setSource(lang, e.target.checked ? 'ai' : undefined)} />
+            AI-translated (Cloudflare) — untick once reviewed
+          </label>
+        </div>
+      )}
       {hint && <p className="field__hint">{hint}</p>}
     </div>
   );
@@ -66,7 +114,8 @@ export function FieldInput({ spec, value, onChange, medium, locked, entityType, 
 }) {
   const id = useId();
   if (spec.i18n) {
-    return <I18nInput label={spec.label} value={value as I18n} onChange={onChange} multiline={spec.type === 'textarea'} required={spec.required} hint={spec.hint} />;
+    return <I18nInput label={spec.label} value={value as I18n} onChange={onChange} multiline={spec.type === 'textarea'} required={spec.required} hint={spec.hint}
+      field={spec.key} sources={form.sources as Sources | undefined} onSourcesChange={(sources) => setFields({ sources })} />;
   }
   switch (spec.type) {
     case 'id':

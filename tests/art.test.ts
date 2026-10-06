@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { findArt, rankWikiPages, shortBio } from '../worker/art';
+import { fillPerson, findArt, rankWikiPages, shortBio } from '../worker/art';
+import { fillDoc } from '../worker/translate';
 
 const NOLAN_EN = 'Christopher Edward Nolan is a British and American filmmaker. Known for his Hollywood blockbusters with complex storytelling, he is considered a leading filmmaker of the 21st century. His films have grossed over $6 billion worldwide. He was born in London.\n\nNolan developed an interest in filmmaking from a young age.\n\nDescription above from the Wikipedia article Christopher Nolan, licensed under CC-BY-SA.';
 const NOLAN_JA = 'クリストファー・ノーランは、イギリス出身の映画監督。複雑な構成の作品で知られる。21世紀を代表する映画監督の一人とされる。ロンドン生まれ。';
@@ -23,31 +24,91 @@ describe('shortBio', () => {
 describe('Find art for a person', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('offers the photo and a short bio in both languages, with a credit', async () => {
+  it('offers headshots only (bios come from Fill in missing)', async () => {
+    const calls: string[] = [];
     vi.stubGlobal('fetch', vi.fn(async (input: URL | string) => {
       const url = new URL(String(input));
-      const json = (b: unknown) => new Response(JSON.stringify(b), { headers: { 'content-type': 'application/json' } });
-      if (url.pathname.endsWith('/search/person')) return json({ results: [{ id: 525, name: 'Christopher Nolan', profile_path: '/nolan.jpg', known_for_department: 'Directing', known_for: [{ title: 'Inception' }] }] });
-      if (url.pathname.endsWith('/person/525')) return json({ biography: url.searchParams.get('language') === 'ja-JP' ? NOLAN_JA : NOLAN_EN });
-      return new Response('not found', { status: 404 });
+      calls.push(url.pathname);
+      return new Response(JSON.stringify({ results: [{ id: 525, name: 'Christopher Nolan', profile_path: '/nolan.jpg', known_for_department: 'Directing', known_for: [{ title: 'Inception' }] }] }));
     }));
     const [c] = await findArt({ TMDB_API_KEY: 'k' } as never, 'person', { id: 'christopher-nolan', name: { en: 'Christopher Nolan' } });
-    expect(c.fields.photo).toBe('https://image.tmdb.org/t/p/w342/nolan.jpg');
-    expect(c.fields.bio).toMatchObject({ en: expect.stringMatching(/^Christopher Edward Nolan/), ja: expect.stringMatching(/^クリストファー/) });
-    expect(c.fields.bio_credit).toBe('Bio: Wikipedia via TMDB, CC BY-SA');
-    expect(c.detail).toMatch(/\+ bio/);
+    expect(c.fields).toEqual({ photo: 'https://image.tmdb.org/t/p/w342/nolan.jpg' });
+    expect(c.detail).toBe('Directing · Inception');
+    // Just the search: no per-person details calls for bios.
+    expect(calls).toEqual(['/3/search/person']);
+  });
+});
+
+describe('bios from TMDB (Fill in missing)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const credits = [{ title: 'Inception', tmdb_id: '27205', kind: 'film' }];
+  const tmdbNolan = (byLang: Record<string, string>) => vi.fn(async (input: URL | string) => {
+    const url = new URL(String(input));
+    const json = (b: unknown) => new Response(JSON.stringify(b));
+    if (url.pathname.endsWith('/search/person')) return json({ results: [{ id: 525 }] });
+    const lang = url.searchParams.get('language');
+    if (lang) return json({ biography: byLang[lang] ?? '' });
+    return json({ id: 525, name: 'Christopher Nolan', biography: byLang.en, combined_credits: { crew: [{ id: 27205, title: 'Inception' }] } });
   });
 
-  it('leaves out Japanese when TMDB only has the English text', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (input: URL | string) => {
-      const url = new URL(String(input));
-      const json = (b: unknown) => new Response(JSON.stringify(b));
-      if (url.pathname.endsWith('/search/person')) return json({ results: [{ id: 1, name: 'A', profile_path: '/a.jpg' }] });
-      return json({ biography: 'A is an actor. She was born in Ohio.' });
-    }));
-    const [c] = await findArt({ TMDB_API_KEY: 'k' } as never, 'person', { id: 'a', name: { en: 'A' } });
-    expect(c.fields.bio).toEqual({ en: 'A is an actor. She was born in Ohio.' });
-    expect(c.fields.bio_credit).toBe('Bio: TMDB');
+  it('trims each language and credits Wikipedia', async () => {
+    vi.stubGlobal('fetch', tmdbNolan({ en: NOLAN_EN, 'ja-JP': NOLAN_JA }));
+    const r = await fillDoc({ TMDB_API_KEY: 'k' } as never, 'person', { id: 'cn', name: { en: 'Christopher Nolan' }, photo: '/media/n.jpg' } as never, { credits });
+    expect(r.patch.bio).toMatchObject({ en: expect.stringMatching(/^Christopher Edward Nolan/), ja: expect.stringMatching(/^クリストファー/) });
+    expect(r.patch.bio_credit).toBe('Bio: Wikipedia via TMDB, CC BY-SA');
+  });
+
+  it('leaves out a translation when TMDB only has the English text', async () => {
+    vi.stubGlobal('fetch', tmdbNolan({ en: 'A is an actor. She was born in Ohio.', 'ja-JP': 'A is an actor. She was born in Ohio.' }));
+    const r = await fillDoc({ TMDB_API_KEY: 'k' } as never, 'person', { id: 'cn', name: { en: 'Christopher Nolan' }, photo: '/media/n.jpg' } as never, { credits, only: ['bio.en', 'bio.ja'] });
+    expect(r.patch.bio).toEqual({ en: 'A is an actor. She was born in Ohio.' });
+    expect(r.patch.bio_credit).toBe('Bio: TMDB');
+  });
+});
+
+describe('fillPerson (Dashboard: fill in from TMDB)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // Two TMDB people share the name; only #2 worked on the film credited here.
+  const tmdbWith = (calls: string[] = []) => vi.fn(async (input: URL | string) => {
+    const url = new URL(String(input));
+    calls.push(url.pathname + (url.searchParams.get('language') ? '?ja' : ''));
+    const json = (b: unknown) => new Response(JSON.stringify(b));
+    if (url.pathname.endsWith('/search/person')) return json({ results: [{ id: 1, name: 'Chris Cooper' }, { id: 2, name: 'Chris Cooper' }] });
+    if (url.pathname.endsWith('/person/1')) return json({ id: 1, name: 'Chris Cooper', profile_path: '/wrong.jpg', biography: 'A different Chris Cooper.', combined_credits: { cast: [{ id: 999, title: 'Something Else' }] } });
+    if (url.pathname.endsWith('/person/2')) {
+      if (url.searchParams.get('language') === 'ja-JP') return json({ biography: 'アメリカの俳優。' });
+      return json({ id: 2, name: 'Chris Cooper', profile_path: '/right.jpg', biography: 'Chris Cooper is an American actor.', combined_credits: { cast: [{ id: 2501, title: 'The Bourne Identity' }] } });
+    }
+    return new Response('nope', { status: 404 });
+  });
+  const env = { TMDB_API_KEY: 'k' } as never;
+  const person = { id: 'chris-cooper', name: { en: 'Chris Cooper' } };
+
+  it('picks the TMDB person whose credits match, not just the first name match', async () => {
+    vi.stubGlobal('fetch', tmdbWith());
+    const out = await fillPerson(env, person, [{ title: 'The Bourne Identity', tmdb_id: '2501', kind: 'film' }]);
+    expect(out.photo).toBe('https://image.tmdb.org/t/p/w342/right.jpg');
+    expect(out.bio).toEqual({ en: 'Chris Cooper is an American actor.', ja: 'アメリカの俳優。' });
+  });
+
+  it('matches on the title when the item has no TMDB id', async () => {
+    vi.stubGlobal('fetch', tmdbWith());
+    const out = await fillPerson(env, person, [{ title: 'the bourne identity', kind: 'film' }]);
+    expect(out.photo).toBe('https://image.tmdb.org/t/p/w342/right.jpg');
+  });
+
+  it('refuses to guess when no credits match', async () => {
+    vi.stubGlobal('fetch', tmdbWith());
+    await expect(fillPerson(env, person, [{ title: 'Unrelated Film', kind: 'film' }])).rejects.toThrow(/No TMDB person with matching credits/);
+  });
+
+  it('only fills what is empty', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal('fetch', tmdbWith(calls));
+    const out = await fillPerson(env, { ...person, bio: { en: 'My own words.' } }, [{ title: 'The Bourne Identity', tmdb_id: '2501', kind: 'film' }]);
+    expect(out).toEqual({ photo: 'https://image.tmdb.org/t/p/w342/right.jpg' });
+    expect(calls.some((c) => c.endsWith('?ja'))).toBe(false);
   });
 });
 

@@ -80,7 +80,9 @@ function unflat(f: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(f)) {
     if (v === undefined) continue;
-    const [a, b] = k.split('.');
+    // Split at the first dot only: source flags are keyed "summary.th", so they flatten to "sources.summary.th".
+    const dot = k.indexOf('.');
+    const a = dot < 0 ? k : k.slice(0, dot), b = dot < 0 ? '' : k.slice(dot + 1);
     if (b) {
       const group = (out[a] ??= {}) as Record<string, unknown>;
       group[b] = v;
@@ -102,7 +104,16 @@ export function diff(before: object, after: object, ignore: string[] = []): Chan
 /** Keep everything in `existing`, adding only what it's missing from `incoming`. */
 export function fillBlanks<T extends object>(existing: T, incoming: T): T {
   const a = flat(existing);
-  for (const [k, v] of Object.entries(flat(incoming))) if (empty(a[k]) && !empty(v)) a[k] = v;
+  const filled = new Set<string>();
+  const incomingFlat = flat(incoming);
+  for (const [k, v] of Object.entries(incomingFlat)) {
+    if (k.startsWith('sources.')) continue;
+    if (empty(a[k]) && !empty(v)) { a[k] = v; filled.add(k); }
+  }
+  // A source flag only comes along with the text it describes; existing text keeps its own (or no) flag.
+  for (const [k, v] of Object.entries(incomingFlat)) {
+    if (k.startsWith('sources.') && filled.has(k.slice('sources.'.length))) a[k] = v;
+  }
   return unflat(a) as T;
 }
 

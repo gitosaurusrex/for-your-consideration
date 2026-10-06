@@ -1,4 +1,4 @@
-import type { AnyDoc, EntityType, I18n, ItemDoc, PersonDoc } from '../src/shared/schema';
+import { hasText, LANG_INFO, LANGS, sourceKey, TRANSLATIONS, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Lang, type PersonDoc, type Sources } from '../src/shared/schema';
 import type { Bindings } from './env';
 
 /** One possible piece of artwork; `fields` is what gets filled in if it's chosen. */
@@ -7,18 +7,18 @@ export interface ArtCandidate {
   label: string;
   detail?: string;
   preview: string;
-  fields: Record<string, string | I18n>;
+  fields: Record<string, string>;
 }
 
 export class ArtError extends Error {}
 
-const TMDB_IMG = 'https://image.tmdb.org/t/p';
+export const TMDB_IMG = 'https://image.tmdb.org/t/p';
 
 export function artStatus(env: Bindings) {
-  return { tmdb: !!env.TMDB_API_KEY, wikipedia: true, spotify: true };
+  return { tmdb: !!env.TMDB_API_KEY, wikipedia: true, spotify: true, ai: !!env.AI };
 }
 
-async function tmdb(env: Bindings, path: string, params: Record<string, string | number | undefined> = {}) {
+export async function tmdb(env: Bindings, path: string, params: Record<string, string | number | undefined> = {}) {
   if (!env.TMDB_API_KEY) throw new ArtError('TMDB isn\'t set up yet — add the TMDB_API_KEY secret (see README → Artwork).');
   const url = new URL(`https://api.themoviedb.org/3${path}`);
   for (const [k, v] of Object.entries(params)) if (v != null && v !== '') url.searchParams.set(k, String(v));
@@ -66,6 +66,9 @@ async function filmOrTv(env: Bindings, item: ItemDoc): Promise<ArtCandidate[]> {
   return (results as Record<string, any>[]).map((r) => toCandidate(r)).filter((c): c is ArtCandidate => !!c).slice(0, 12);
 }
 
+/** Lowercase letters and digits only, for comparing titles. */
+const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
 /** Wikimedia asks API clients to identify themselves. */
 const WIKI_UA = 'ForYourConsideration/1.0 (https://github.com/gitosaurusrex/for-your-consideration)';
 
@@ -77,7 +80,6 @@ export interface WikiPage {
   thumbnail?: { source: string };
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 
 /**
  * Search results with a lead image, the game's own article first: the description says it's a
@@ -141,52 +143,114 @@ async function music(item: ItemDoc): Promise<ArtCandidate[]> {
  * The first few sentences of a TMDB biography. TMDB bios are often long and copied from
  * Wikipedia, so this keeps a short opening and notes where it came from.
  */
-export function shortBio(text: string | undefined, lang: 'en' | 'ja'): string | undefined {
+export function shortBio(text: string | undefined, lang: Lang): string | undefined {
   const para = text?.split(/\n+/).map((s) => s.trim())
     .find((s) => s && !/^from wikipedia/i.test(s) && !/^description above from/i.test(s));
   if (!para) return undefined;
-  const sentences = lang === 'ja'
-    ? para.match(/[^。！？]+[。！？」]*/g) ?? [para]
-    : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-Z"“(])/);
-  const limit = lang === 'ja' ? 220 : 450;
+  const sentences =
+    lang === 'ja' ? para.match(/[^。！？]+[。！？」]*/g) ?? [para]
+    // Thai has no full stops; a space separates phrases and sentences.
+    : lang === 'th' ? para.split(/\s+/)
+    : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-ZÁÉÍÓÚÑ¿¡"“(])/);
+  const limit = lang === 'ja' ? 220 : lang === 'th' ? 260 : 450;
+  const join = lang === 'ja' ? '' : ' ';
   let out = '';
-  for (const s of sentences.slice(0, 3)) {
-    const next = out ? (lang === 'ja' ? out + s : `${out} ${s}`) : s;
+  for (const s of sentences.slice(0, lang === 'th' ? 40 : 3)) {
+    const next = out ? out + join + s : s;
     if (out && next.length > limit) break;
     out = next;
   }
   return out.trim() || undefined;
 }
 
-/** A person's bio from TMDB in English and (when TMDB has one) Japanese, plus a credit line. */
-async function personBio(env: Bindings, id: number): Promise<Record<string, string | I18n> | undefined> {
-  const [en, ja] = await Promise.all([
-    tmdb(env, `/person/${id}`),
-    tmdb(env, `/person/${id}`, { language: 'ja-JP' }).catch((): Record<string, any> => ({})),
-  ]);
+type Details = Record<string, any>;
+
+/** The bio fields for a person, from TMDB's English details and its details in each other site language. */
+export function bioFields(en: Details, translated: Partial<Record<Lang, Details>>): { bio: I18n; bio_credit: string; sources: Sources } | undefined {
   const bioEn = shortBio(en.biography, 'en');
   if (!bioEn) return undefined;
-  // TMDB returns the English text when there's no Japanese one; only keep a real translation.
-  const bioJa = ja.biography && ja.biography !== en.biography ? shortBio(ja.biography, 'ja') : undefined;
-  const fromWikipedia = /wikipedia/i.test(`${en.biography} ${ja.biography ?? ''}`);
-  return {
-    bio: { en: bioEn, ...(bioJa ? { ja: bioJa } : {}) },
-    bio_credit: fromWikipedia ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB',
-  };
+  const bio: I18n = { en: bioEn };
+  for (const l of TRANSLATIONS) {
+    const text = translated[l]?.biography;
+    // TMDB can return the English text when there's no translation; only keep a real one.
+    const short = text && text !== en.biography ? shortBio(text, l) : undefined;
+    if (short) bio[l] = short;
+  }
+  const all = [en.biography, ...TRANSLATIONS.map((l) => translated[l]?.biography ?? '')].join(' ');
+  const sources = Object.fromEntries(LANGS.filter((l) => bio[l]).map((l) => [sourceKey('bio', l), 'tmdb' as const]));
+  return { bio, bio_credit: /wikipedia/i.test(all) ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB', sources };
 }
 
+/** A person's TMDB details in each non-English site language (a failed one is just left out). */
+export async function translatedDetails(env: Bindings, id: number): Promise<Partial<Record<Lang, Details>>> {
+  const got = await Promise.all(TRANSLATIONS.map((l) =>
+    tmdb(env, `/person/${id}`, { language: LANG_INFO[l].locale }).catch((): Details => ({}))));
+  return Object.fromEntries(TRANSLATIONS.map((l, i) => [l, got[i]]));
+}
+
+/** Something a person is credited on in this catalog, used to confirm which TMDB person they are. */
+export interface Credit { title: string; tmdb_id?: string; kind: string }
+
+
+/**
+ * Finds a person on TMDB and returns what's missing from their record (photo, bio).
+ * A search result only counts as a match if their TMDB credits include something they're credited on here
+ * (same TMDB id, or the same title), so a common name never picks up a stranger's photo or bio.
+ */
+/**
+ * Finds this person on TMDB. A search result only counts as a match if their TMDB credits include something
+ * they're credited on here (same TMDB id, or the same title), so a common name never picks up a stranger.
+ * Returns their TMDB details, or throws an ArtError saying why there's no match.
+ */
+export async function matchTmdbPerson(env: Bindings, p: PersonDoc, credits: Credit[]): Promise<Details> {
+  if (!p.name?.en) throw new ArtError('No English name to search for.');
+  const { results } = await tmdb(env, '/search/person', { query: p.name.en });
+  const ids = new Set(credits.map((c) => c.tmdb_id).filter(Boolean).map(String));
+  const titles = new Set(credits.map((c) => norm(c.title)).filter(Boolean));
+  // The top few results by popularity; one details call each (with their credits).
+  for (const r of (results as Details[]).slice(0, 3)) {
+    const d = await tmdb(env, `/person/${r.id}`, { append_to_response: 'combined_credits' });
+    const theirs = [...(d.combined_credits?.cast ?? []), ...(d.combined_credits?.crew ?? [])] as Details[];
+    if (theirs.some((c) => ids.has(String(c.id)) || titles.has(norm(c.title ?? c.name)) || titles.has(norm(c.original_title ?? c.original_name)))) return d;
+  }
+  throw new ArtError(results?.length
+    ? 'No TMDB person with matching credits. Use Find art on their page to pick one by hand.'
+    : 'Not found on TMDB (musicians often aren\'t listed). Add a photo and bio by hand.');
+}
+
+/**
+ * A person's name as TMDB lists it in other scripts ("also known as"): Thai script for Thai, kana for Japanese.
+ * Han-only names are skipped for Japanese, since they're as likely to be Chinese.
+ */
+export function namesFromTmdb(d: Details): Partial<Record<Lang, string>> {
+  const aka = ((d.also_known_as ?? []) as string[]).map((s) => s.trim()).filter(Boolean);
+  const th = aka.find((s) => /\p{Script=Thai}/u.test(s));
+  const ja = aka.find((s) => /[\p{Script=Katakana}\p{Script=Hiragana}]/u.test(s));
+  return { ...(th ? { th } : {}), ...(ja ? { ja } : {}) };
+}
+
+/** Finds a person on TMDB and returns what's missing from their record (photo, bio), with source flags. */
+export async function fillPerson(env: Bindings, p: PersonDoc, credits: Credit[]): Promise<Partial<PersonDoc>> {
+  const match = await matchTmdbPerson(env, p, credits);
+  const out: Partial<PersonDoc> = {};
+  if (!p.photo && match.profile_path) out.photo = `${TMDB_IMG}/w342${match.profile_path}`;
+  if (!hasText(p.bio)) {
+    const got = bioFields(match, await translatedDetails(env, match.id));
+    if (got) { out.bio = got.bio; out.bio_credit = got.bio_credit; out.sources = { ...p.sources, ...got.sources }; }
+  }
+  if (!Object.keys(out).length) throw new ArtError(`TMDB has no photo or bio for ${match.name}.`);
+  return out;
+}
+
+/** Headshots to choose from. (Bios come from "Fill in missing", not from here.) */
 async function person(env: Bindings, p: PersonDoc): Promise<ArtCandidate[]> {
   const { results } = await tmdb(env, '/search/person', { query: p.name?.en });
-  const hits = (results as Record<string, any>[]).filter((r) => r.profile_path).slice(0, 12);
-  // Bios for the likeliest matches (a details call each), so choosing one fills the bio too.
-  const bios = await Promise.all(hits.map((r, i) => (i < 6 ? personBio(env, r.id).catch(() => undefined) : undefined)));
-  return hits.map((r, i) => ({
+  return (results as Record<string, any>[]).filter((r) => r.profile_path).slice(0, 12).map((r) => ({
     source: 'TMDB' as const,
     label: r.name,
-    detail: [r.known_for_department, ...(r.known_for ?? []).slice(0, 2).map((k: Record<string, any>) => k.title ?? k.name), bios[i] ? '+ bio' : '']
-      .filter(Boolean).join(' · '),
+    detail: [r.known_for_department, ...(r.known_for ?? []).slice(0, 2).map((k: Record<string, any>) => k.title ?? k.name)].filter(Boolean).join(' · '),
     preview: `${TMDB_IMG}/w185${r.profile_path}`,
-    fields: { photo: `${TMDB_IMG}/w342${r.profile_path}`, ...bios[i] },
+    fields: { photo: `${TMDB_IMG}/w342${r.profile_path}` },
   }));
 }
 

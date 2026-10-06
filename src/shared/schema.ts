@@ -4,7 +4,21 @@
  * Used by the Worker (validation, ingest) and the browser (admin forms, display).
  */
 
-export type Lang = 'en' | 'ja';
+/** Site languages. English is the base every translation falls back to; Japanese is the default for visitors. */
+export const LANGS = ['en', 'ja', 'th', 'es'] as const;
+export type Lang = (typeof LANGS)[number];
+/** Languages other than English: optional translations of every text field. */
+export const TRANSLATIONS = ['ja', 'th', 'es'] as const satisfies readonly Lang[];
+
+/** How each language names itself, its short label, and the locale used for dates and country names. */
+export const LANG_INFO: Record<Lang, { name: string; short: string; locale: string; english: string }> = {
+  en: { name: 'English', short: 'EN', locale: 'en-US', english: 'English' },
+  ja: { name: '日本語', short: '日本語', locale: 'ja-JP', english: 'Japanese' },
+  th: { name: 'ไทย', short: 'ไทย', locale: 'th-TH', english: 'Thai' },
+  es: { name: 'Español', short: 'ES', locale: 'es-ES', english: 'Spanish' },
+};
+
+export const isLang = (v: unknown): v is Lang => typeof v === 'string' && (LANGS as readonly string[]).includes(v);
 export type Medium = 'watch' | 'listen' | 'play';
 export type ItemKind = 'film' | 'tv' | 'song' | 'album' | 'game';
 export type EntityType = 'item' | 'person' | 'company' | 'genre';
@@ -14,8 +28,20 @@ export const ENTITY_TYPES: EntityType[] = ['genre', 'company', 'person', 'item']
 export const KIND_MEDIUM: Record<ItemKind, Medium> = { film: 'watch', tv: 'watch', song: 'listen', album: 'listen', game: 'play' };
 export const MEDIUM_KINDS: Record<Medium, ItemKind[]> = { watch: ['film', 'tv'], listen: ['song', 'album'], play: ['game'] };
 
-/** A translated string: English is required wherever the field is required; Japanese falls back to English. */
-export type I18n = { en: string; ja?: string };
+/** A translated string: English is required wherever the field is required; every other language falls back to English. */
+export type I18n = { en: string; ja?: string; th?: string; es?: string };
+
+/**
+ * Where the text of a translated field came from, per language, keyed "field.lang" (e.g. "summary.th": "ai").
+ * Set when TMDB or Cloudflare AI fills a field; the admin shows it as a checkbox the editor can untick.
+ * No entry means it was written by hand (or reviewed).
+ */
+export type Source = 'tmdb' | 'ai';
+export type Sources = Record<string, Source>;
+export const sourceKey = (field: string, lang: Lang) => `${field}.${lang}`;
+
+/** True when a translated field has text in any language. */
+export const hasText = (v?: Partial<I18n>) => LANGS.some((l) => !!v?.[l]);
 
 export interface Availability {
   /** Free to watch (e.g. Tubi, YouTube, Pluto). */
@@ -32,7 +58,6 @@ export interface ItemDoc {
   medium: Medium;
   title: I18n;
   summary: I18n;
-  note?: I18n;
   genres: string[];
   year: number;
   featured?: boolean;
@@ -63,11 +88,12 @@ export interface ItemDoc {
   publishers?: string[];
   creators?: string[];
   igdb_id?: string;
+  sources?: Sources;
 }
 
-export interface PersonDoc { id: string; name: I18n; bio?: I18n; bio_credit?: string; photo?: string; photo_credit?: string }
-export interface CompanyDoc { id: string; name: I18n; country?: string; logo?: string }
-export interface GenreDoc { id: string; medium: Medium; slug: string; name: I18n; hue?: number }
+export interface PersonDoc { id: string; name: I18n; bio?: I18n; bio_credit?: string; photo?: string; photo_credit?: string; sources?: Sources }
+export interface CompanyDoc { id: string; name: I18n; country?: string; logo?: string; sources?: Sources }
+export interface GenreDoc { id: string; medium: Medium; slug: string; name: I18n; hue?: number; sources?: Sources }
 export type AnyDoc = ItemDoc | PersonDoc | CompanyDoc | GenreDoc;
 
 export interface SiteSettings {
@@ -94,15 +120,17 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   media: { watch: true, listen: true, play: true },
   keepCopies: true,
   text: {
-    morning: { en: 'Good morning', ja: 'おはようございます' },
-    afternoon: { en: 'Good afternoon', ja: 'こんにちは' },
-    evening: { en: 'Good evening', ja: 'こんばんは' },
-    night: { en: 'Hello, night owl', ja: 'お疲れさまです' },
+    morning: { en: 'Good morning', ja: 'おはようございます', th: 'สวัสดีตอนเช้า', es: 'Buenos días' },
+    afternoon: { en: 'Good afternoon', ja: 'こんにちは', th: 'สวัสดีตอนบ่าย', es: 'Buenas tardes' },
+    evening: { en: 'Good evening', ja: 'こんばんは', th: 'สวัสดีตอนเย็น', es: 'Buenas tardes' },
+    night: { en: 'Hello, night owl', ja: 'お疲れさまです', th: 'สวัสดีตอนค่ำ', es: 'Buenas noches' },
     intro: {
-      en: 'Welcome. This is a hand-picked shelf of films, shows, music and games worth a look. No spoilers here, just a short note on why each one made the list.',
-      ja: 'ようこそ。おすすめの映画、ドラマ、音楽、ゲームを集めた本棚です。ネタバレはなし。それぞれ選んだ理由をひとこと添えています。',
+      en: 'Welcome. This is a hand-picked shelf of films, shows, music and games worth a look, with no spoilers.',
+      ja: 'ようこそ。おすすめの映画、ドラマ、音楽、ゲームを集めた本棚です。ネタバレはありません。',
+      th: 'ยินดีต้อนรับ ที่นี่รวบรวมภาพยนตร์ ซีรีส์ เพลง และเกมที่คัดสรรมาแล้วว่าน่าลอง ไม่มีสปอยล์',
+      es: 'Te doy la bienvenida. Esta es una selección hecha a mano de películas, series, música y juegos que vale la pena conocer, sin spoilers.',
     },
-    signoff: { en: 'Enjoy browsing', ja: 'どうぞごゆっくり' },
+    signoff: { en: 'Enjoy browsing', ja: 'どうぞごゆっくり', th: 'ขอให้สนุกกับการเลือกชม', es: 'Disfruta explorando' },
   },
 };
 
@@ -150,9 +178,8 @@ const f = (key: string, label: string, type: FieldType, extra: Partial<FieldSpec
 const ITEM_HEAD: FieldSpec[] = [
   f('id', 'ID (URL slug)', 'id', { hint: 'Lowercase letters, numbers and dashes. Leave blank to generate from the English title.' }),
   f('kind', 'Type', 'select', { required: true, options: SELECT_KINDS }),
-  f('title', 'Title', 'text', { i18n: true, required: true, hint: 'Use the official Japanese release title for 日本語.' }),
+  f('title', 'Title', 'text', { i18n: true, required: true, hint: 'Use the official release title in each language (e.g. the Japanese release title for 日本語). Leave a language blank to show English.' }),
   f('summary', 'Spoiler-free summary', 'textarea', { i18n: true, required: true }),
-  f('note', 'Why I recommend it', 'textarea', { i18n: true }),
   f('genres', 'Genres', 'refs', { to: 'genre', required: true }),
 ];
 const ITEM_TAIL: FieldSpec[] = [
@@ -206,7 +233,7 @@ export const ENTITY_FIELDS: Record<Exclude<EntityType, 'item'>, FieldSpec[]> = {
   person: [
     f('id', 'ID (URL slug)', 'id', { hint: 'Leave blank to generate from the English name.' }),
     f('name', 'Name', 'text', { i18n: true, required: true, hint: '日本語: the name as written in Japan (e.g. ドゥニ・ヴィルヌーヴ, 小島秀夫).' }),
-    f('bio', 'Short bio', 'textarea', { i18n: true, hint: '"Find art" on the headshot can fill this in from TMDB.' }),
+    f('bio', 'Short bio', 'textarea', { i18n: true, hint: '"Fill in missing" (top of this page) can fill this in from TMDB.' }),
     f('bio_credit', 'Bio source', 'text', { hint: 'Shown under the bio. Required when the text comes from Wikipedia, e.g. "Bio: Wikipedia, CC BY-SA".' }),
     f('photo', 'Headshot', 'image'),
     f('photo_credit', 'Photo credit', 'text', { hint: 'Required for Wikimedia Commons photos, e.g. "Photo: Jane Doe, CC BY-SA 4.0".' }),

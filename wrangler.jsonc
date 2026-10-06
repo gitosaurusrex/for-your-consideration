@@ -27,6 +27,8 @@
   // create it with `npx wrangler r2 bucket create fyc-media`, then uncomment this line.
   // When both are set, R2 is used.
   // "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "fyc-media" }],
+  // Cloudflare Workers AI fills translation gaps (free daily allowance; no payment method needed).
+  "ai": { "binding": "AI" },
   // Secrets (set with `npx wrangler secret put NAME`, never in this file):
   //   ADMIN_PASSWORD (admin login, 12+ characters)
   //   TMDB_API_KEY (optional, for "Find art" on films, TV and people)

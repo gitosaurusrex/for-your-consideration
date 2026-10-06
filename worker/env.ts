@@ -4,6 +4,8 @@ export interface Bindings {
   MEDIA?: R2Bucket;
   MEDIA_KV?: KVNamespace;
   TMDB_API_KEY?: string;
+  /** Cloudflare Workers AI, for filling translation gaps (free daily allowance). */
+  AI?: Ai;
   ADMIN_PASSWORD?: string;
   DEV_AUTH_BYPASS?: string;
 }

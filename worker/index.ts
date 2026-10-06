@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
 import { analyze, SECTION, summarize, writesFor, type Decision, type IngestFile } from '../src/shared/ingest';
-import { ENTITY_TYPES, IMAGE_FIELDS, isStoredImage, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type SiteSettings } from '../src/shared/schema';
+import { ENTITY_TYPES, hasText, IMAGE_FIELDS, isStoredImage, LANGS, MEDIA, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Medium, type PersonDoc, type SiteSettings } from '../src/shared/schema';
 import { normalize, referencesOf } from '../src/shared/validate';
-import { ArtError, artStatus, findArt } from './art';
+import { ArtError, artStatus, fillPerson, findArt, type Credit } from './art';
+import { fillDoc, gapsOf, labelOf, TranslateError } from './translate';
+import { fillPlan, planKeys } from '../src/shared/fill';
 import { login, logout, requireAdmin } from './auth';
 import { getEntity, getSettings, loadAll, putSetting, upsert } from './db';
 import type { AppEnv } from './env';
@@ -140,7 +142,7 @@ admin.put('/settings', async (c) => {
     const text = { ...current.text };
     for (const k of Object.keys(text) as (keyof SiteSettings['text'])[]) {
       const v = body.text[k] as I18n | undefined;
-      if (v?.en) text[k] = { en: String(v.en).trim(), ...(v.ja ? { ja: String(v.ja).trim() } : {}) };
+      if (v?.en) text[k] = Object.fromEntries(LANGS.filter((l) => v[l]).map((l) => [l, String(v[l]).trim()])) as unknown as I18n;
     }
     stmts.push(putSetting(c.env.DB, 'text', text));
   }
@@ -201,7 +203,7 @@ admin.get('/export', async (c) => {
 // ── Images ──
 
 const mediaError = (e: unknown) => {
-  if (e instanceof MediaError || e instanceof ArtError) return { error: e.message };
+  if (e instanceof MediaError || e instanceof ArtError || e instanceof TranslateError) return { error: e.message };
   throw e;
 };
 
@@ -256,6 +258,123 @@ admin.post('/media/mirror', async (c) => {
 });
 
 admin.get('/art/status', (c) => c.json(artStatus(c.env)));
+
+/** What each person is credited on here, used to confirm which TMDB person they are. */
+function creditsByPerson(all: Awaited<ReturnType<typeof loadAll>>) {
+  const credits = new Map<string, Credit[]>();
+  for (const item of all.item.values() as Iterable<ItemDoc>) {
+    for (const field of ['directors', 'cast', 'artists', 'creators'] as const) {
+      for (const id of (item[field] as string[] | undefined) ?? []) {
+        const list = credits.get(id) ?? [];
+        list.push({ title: item.title?.en ?? '', tmdb_id: item.tmdb_id, kind: item.kind });
+        credits.set(id, list);
+      }
+    }
+  }
+  return credits;
+}
+
+/** Someone needs filling when they have no photo or no bio (in either language). */
+const needsFill = (p: PersonDoc) => !p.photo || !hasText(p.bio);
+
+/**
+ * Fill in missing headshots and bios from TMDB for a few people at a time (called repeatedly by the
+ * Dashboard). Only empty fields are filled, and only when TMDB's credits confirm it's the same person.
+ */
+admin.post('/people/fill', async (c) => {
+  const { limit = 4, skip = [] } = (await c.req.json().catch(() => ({}))) as { limit?: number; skip?: string[] };
+  const [all, settings] = await Promise.all([loadAll(c.env.DB), getSettings(c.env.DB)]);
+  const credits = creditsByPerson(all);
+  const jobs = ([...all.person.values()] as PersonDoc[]).filter((p) => needsFill(p) && !skip.includes(p.id));
+  // Each person takes up to seven TMDB calls (search, up to three candidates, three translated bios) plus an image
+  // copy: eight outside requests. Four people per request is 32, under the free plan's limit of 50.
+  const batch = jobs.slice(0, Math.min(Math.max(1, limit), 4));
+  const filled: { id: string; label: string; got: string[] }[] = [];
+  const failed: { id: string; label: string; error: string }[] = [];
+  const updated: PersonDoc[] = [];
+  for (const p of batch) {
+    const label = p.name?.en ?? p.id;
+    try {
+      const found = await fillPerson(c.env, p, credits.get(p.id) ?? []);
+      if (typeof found.photo === 'string' && settings.keepCopies) {
+        try { found.photo = await importImage(c.env, found.photo); } catch { /* keep the TMDB link */ }
+      }
+      updated.push({ ...p, ...found, sources: { ...p.sources, ...found.sources } } as PersonDoc);
+      filled.push({ id: p.id, label, got: ['photo', 'bio'].filter((k) => k in found) });
+    } catch (e) {
+      if (!(e instanceof ArtError) && !(e instanceof MediaError)) throw e;
+      failed.push({ id: p.id, label, error: e.message });
+    }
+  }
+  if (updated.length) await c.env.DB.batch(updated.map((p) => upsert(c.env.DB, 'person', p)));
+  return c.json({ filled, failed, remaining: jobs.length - batch.length });
+});
+
+// ── Translations: TMDB first, then Cloudflare AI ──
+
+/**
+ * "Fill in missing" on an edit page: fill the chosen empty fields (`only`: keys from the record's fill plan) for
+ * the form. Nothing is saved; the editor reviews and saves.
+ */
+admin.post('/fill', async (c) => {
+  const { type, doc, only } = (await c.req.json()) as { type: EntityType; doc: AnyDoc; only?: string[] };
+  const [all, settings] = await Promise.all([loadAll(c.env.DB), getSettings(c.env.DB)]);
+  try {
+    return c.json(await fillDoc(c.env, type, doc, {
+      only,
+      credits: type === 'person' ? creditsByPerson(all).get(doc.id) ?? [] : [],
+      copyImage: settings.keepCopies ? (url) => importImage(c.env, url) : undefined,
+    }));
+  } catch (e) { return c.json(mediaError(e), 400); }
+});
+
+/** How many records still have empty translations the fill could cover (Dashboard count). */
+admin.get('/translate/status', async (c) => {
+  const all = await loadAll(c.env.DB);
+  let records = 0, fields = 0;
+  for (const type of ['genre', 'person', 'item'] as const) for (const doc of all[type].values()) {
+    const gaps = gapsOf(type, doc).length;
+    if (gaps) { records++; fields += gaps; }
+  }
+  return c.json({ records, fields, ai: !!c.env.AI, tmdb: !!c.env.TMDB_API_KEY });
+});
+
+/**
+ * Fill empty translations everywhere, a few records per request (called repeatedly by the Dashboard), saving as
+ * it goes. The Dashboard passes back every record it has already done, so each runs once per pass.
+ */
+admin.post('/translate/fill', async (c) => {
+  const { limit = 3, skip = [] } = (await c.req.json().catch(() => ({}))) as { limit?: number; skip?: string[] };
+  const all = await loadAll(c.env.DB);
+  const credits = creditsByPerson(all);
+  const jobs: { type: EntityType; doc: AnyDoc; key: string }[] = [];
+  for (const type of ['genre', 'person', 'item'] as const) for (const doc of all[type].values()) {
+    const key = `${type}:${doc.id}`;
+    if (!skip.includes(key) && gapsOf(type, doc).length) jobs.push({ type, doc, key });
+  }
+  // A person can take seven TMDB calls; three records per request stays well under Workers' limits.
+  const batch = jobs.slice(0, Math.min(Math.max(1, limit), 3));
+  const filled: { key: string; label: string; got: Record<string, 'tmdb' | 'ai'> }[] = [];
+  const notes: { key: string; label: string; note: string }[] = [];
+  const writes = [];
+  const done: string[] = [];
+  let stopped: string | undefined;
+  for (const job of batch) {
+    done.push(job.key);
+    const label = labelOf(job.type, job.doc);
+    // Translations only here; the Dashboard's headshots-and-bios step fills photos and English bios.
+    const only = planKeys(fillPlan(job.type, job.doc, !!c.env.TMDB_API_KEY).filter((r) => r.via === 'translate'));
+    const r = await fillDoc(c.env, job.type, job.doc, { only, credits: job.type === 'person' ? credits.get(job.doc.id) ?? [] : [] });
+    if (Object.keys(r.filled).length) {
+      writes.push(upsert(c.env.DB, job.type, { ...job.doc, ...r.patch } as AnyDoc));
+      filled.push({ key: job.key, label, got: r.filled });
+    }
+    for (const note of r.notes) notes.push({ key: job.key, label, note });
+    if (r.aiStopped) { stopped = r.aiStopped; break; }
+  }
+  if (writes.length) await c.env.DB.batch(writes);
+  return c.json({ filled, notes, done, remaining: stopped ? 0 : jobs.length - batch.length, ...(stopped ? { stopped } : {}) });
+});
 
 /** Look up official artwork for a record (TMDB for films/TV/people, Wikipedia for games, Spotify for music). */
 admin.post('/art/search', async (c) => {

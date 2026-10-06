@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useParams } from 'react-router';
-import { getCompany, getGenre, getPerson, hueOf, itemsFromCountry, itemsInGenre, studioWorks, worksOf } from '../data';
+import { getCompany, getGenre, getPerson, hueOf, isAiTranslated, itemsFromCountry, itemsInGenre, studioWorks, worksOf } from '../data';
 import { countryName, flag, useLang } from '../i18n';
 import { Avatar } from '../components/Chips';
 import { Grid } from '../components/Grid';
@@ -66,6 +66,7 @@ export function PersonPage() {
           <h1 className="page-title reveal" style={reveal(2)}>{p[lang].name}</h1>
           {altName !== p[lang].name && <p className="page-alt reveal" style={reveal(3)}>{altName}</p>}
           {p[lang].bio && <p className="bio reveal" style={reveal(4)}>{p[lang].bio}</p>}
+          {p[lang].bio && isAiTranslated(p.doc, 'bio', lang) && <small className="auto-translated reveal" style={reveal(4)}>{t.autoTranslated}</small>}
           {p[lang].bio && p.doc.bio_credit && <small className="bio-credit reveal" style={reveal(4)}>{p.doc.bio_credit}</small>}
         </div>
       </header>

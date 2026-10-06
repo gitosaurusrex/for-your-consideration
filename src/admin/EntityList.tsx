@@ -15,7 +15,7 @@ function flagsFor(type: EntityType, doc: AnyDoc): string[] {
   const missingJa = (v?: I18n) => v?.en && !v.ja;
   if (type === 'item') {
     const i = doc as ItemDoc;
-    if (missingJa(i.title) || missingJa(i.summary) || missingJa(i.note)) out.push('needs Japanese');
+    if (missingJa(i.title) || missingJa(i.summary)) out.push('needs Japanese');
     if (!i.poster && !i.cover) out.push('no art');
     if (i.medium === 'watch' && !i.watch_url) out.push('no watch link');
     if (i.medium === 'listen' && !i.spotify_url) out.push('no Spotify link');
@@ -25,6 +25,9 @@ function flagsFor(type: EntityType, doc: AnyDoc): string[] {
     if (type === 'person' && !named.photo) out.push('no photo');
     if (type === 'person' && !named.bio) out.push('no bio');
   }
+  // AI translations still flagged (the editor unticks the box once reviewed).
+  const ai = Object.values(doc.sources ?? {}).filter((s) => s === 'ai').length;
+  if (ai) out.push(`${ai} AI translation${ai === 1 ? '' : 's'} to review`);
   return out;
 }
 

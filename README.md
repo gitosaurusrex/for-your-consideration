@@ -1,8 +1,8 @@
 # For Your Consideration
 
-A hand-curated recommendations site for **films, TV, music and games**, written for a friend in **English and 日本語**.
+A hand-curated recommendations site for **films, TV, music and games**, written for a friend in **English, 日本語, ไทย and Español**.
 
-- Official artwork, spoiler-free summaries, a personal "why I picked it" note, and the date each item was added
+- Official artwork, spoiler-free summaries, and the date each item was added
 - **Film & TV**:
   - director/creator and top-billed cast, year and release countries
   - a **Watch** button
@@ -17,7 +17,7 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
   - Person pages show a headshot, a bio, and everything they directed, starred in, recorded or created.
   - "More like this" on every item.
 - **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
-- **EN / 日本語 switch.** Defaults to Japanese; a visitor's own choice is remembered. `?lang=en` forces English.
+- **Four languages: English, 日本語, ไทย and Español.** The globe menu in the header switches between them. The site defaults to Japanese and remembers a visitor's own choice; `?lang=en` (or `ja`, `th`, `es`) in the address forces one. Content that hasn't been translated yet shows in English.
 - **Follows the time of day.** The colors and the home page greeting change with the visitor's clock: morning (5–11), afternoon (11–17), evening (17–21) and night (21–5). Morning and afternoon use light palettes, evening and night dark ones.
 - Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
 - **Admin at `/admin`**, behind a password login:
@@ -145,9 +145,18 @@ Database migrations are applied as part of either path.
   - **⤓ Save a copy:** download a linked image into your own storage.
 
   Stored images live in Workers KV (free up to 1 GB) or an R2 bucket and are served from `/media/…` on your own domain. With **Keep a copy of artwork** on (Dashboard → Images, on by default), Find art picks and artwork linked in ingested files are copied automatically. "Copy all now" handles anything still linked from elsewhere.
+- **Fill in missing info (headshots, bios, translations):** only empty fields are ever filled.
+  - **For one record:** **✨ Fill in missing** on its edit page opens a short list of what can be filled, grouped by source: *From TMDB* (a person's headshot and English bio, official titles of films and shows) and *Translations* (each field, with a toggle per language). Everything starts switched on; untick what you don't want, then **Fill**. The results go into the form; nothing is saved until you save.
+  - **For everything:** Dashboard → **Fill in missing info**: tick *Headshots and English bios from TMDB* and/or *Translations*, then **Fill in**. It saves as it goes and reports what it filled and skipped.
+  - Translations come from TMDB first (official titles, people's names, bios); Cloudflare AI then translates the rest from English (summaries, bios, genre names, names in Thai and Japanese). Titles of games and albums and studio names are never machine-translated. TMDB people are only used when their TMDB credits include something they're credited on here, so a shared name never brings in a stranger.
+  - Each translated field has one box with a tab per language. A green dot means that language has text; a **TMDB** or **AI** tag says where it came from.
+  - Under the box, **From TMDB** and **AI-translated** checkboxes record the source of the selected language. They're ticked when the text is filled in; untick them once you've reviewed or rewritten it. Lists show how many AI translations are left to review.
+  - Visitors see a small "Translated automatically" note under summaries and bios that are still flagged as AI translations.
+  - Cloudflare AI is free up to a daily allowance (10,000 "neurons", far more than a catalog this size needs); if it runs out, the fill stops with a message and can be run again after midnight UTC. It's connected by the `"ai"` binding in `wrangler.jsonc` and only runs on the deployed site; `npm run dev` doesn't connect to it unless you start it with `FYC_REMOTE_AI=true` (which needs `npx wrangler login`).
+- **Find art** (on an image field) is for choosing artwork: posters, covers and headshots to pick from.
 - **Artwork and bios for batch files:** `npm run fetch-art -- my-batch.json` fills poster, cover and headshot links, plus short bios for people from TMDB, into a file before you upload it. Keys go in `.env` (see `.env.example`). For things already on the site: **Export everything**, run the script on the export, then upload it and choose **Fill blanks in all**.
 - **One-off edits:** Admin → Items / People / Studios / Genres.
-  - The edit forms show English and Japanese side by side.
+  - The edit forms show every translated field in all four languages (English and 日本語 on top, ไทย and Español below). Only English is required; a blank translation shows English on the site, and a missing Japanese one is highlighted.
   - Pick people, studios and genres by name, or create them inline.
   - Delete anything. People, studios and genres that items still use are protected.
   - "Only ones needing attention" lists records missing Japanese, art, links, photos or bios.
