@@ -399,7 +399,7 @@ function initialLang(): Lang {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (isLang(saved)) return saved;
   } catch { /* storage unavailable */ }
-  return 'ja';
+  return 'en';
 }
 
 export function LangProvider({ children }: { children: ReactNode }) {
@@ -409,7 +409,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = lang;
   }, [lang]);
 
-  // Only a choice the visitor made is remembered, so everyone else gets the Japanese default.
+  // Only a choice the visitor made is remembered, so everyone else gets the English default.
   const setLang = useCallback((l: Lang) => {
     try { localStorage.setItem(STORAGE_KEY, l); } catch { /* ignore */ }
     if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) {
