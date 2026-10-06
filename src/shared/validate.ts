@@ -1,5 +1,5 @@
 import {
-  fieldsFor, isDate, isHttpUrl, MEDIA_PREFIX, KIND_MEDIUM, PLATFORMS, slugify, genreKey,
+  fieldsFor, isDate, isHttpUrl, isLang, LANG_INFO, LANGS, MEDIA_PREFIX, KIND_MEDIUM, PLATFORMS, slugify, genreKey, TRANSLATIONS,
   type AnyDoc, type EntityType, type FieldSpec, type I18n, type ItemKind, type Medium,
 } from './schema';
 
@@ -116,10 +116,13 @@ function readField(spec: FieldSpec, v: unknown, errors: string[], warnings: stri
   if (spec.i18n) {
     if (v == null || v === '') return undefined;
     if (typeof v === 'string') return { en: v.trim() } satisfies I18n;
-    if (typeof v !== 'object' || Array.isArray(v)) { errors.push(`${where} should be text or { "en": …, "ja": … }`); return undefined; }
+    if (typeof v !== 'object' || Array.isArray(v)) { errors.push(`${where} should be text or { "en": …, "ja": …, "th": …, "es": … }`); return undefined; }
     const o = v as Record<string, unknown>;
-    const out = compact({ en: asString(o.en) ?? '', ja: asString(o.ja) });
-    if (!out.en && out.ja) { errors.push(`${where} has Japanese but no English`); return undefined; }
+    for (const k of Object.keys(o)) if (!isLang(k)) warnings.push(`unknown language "${spec.key}.${k}" was ignored (use ${LANGS.join(', ')})`);
+    const out = compact(Object.fromEntries(LANGS.map((l) => [l, asString(o[l]) ?? (l === 'en' ? '' : undefined)]))) as I18n;
+    const others = TRANSLATIONS.filter((l) => out[l]);
+    if (!out.en && others.length) { errors.push(`${where} has ${others.map((l) => LANG_INFO[l].english).join(' and ')} but no English`); return undefined; }
+    // Japanese is the site's default language, so a missing Japanese translation is worth a nudge; Thai and Spanish are optional.
     if (out.en && !out.ja && spec.type !== 'id') warnings.push(`${where} has no Japanese yet (English will be shown)`);
     return out.en ? out : undefined;
   }

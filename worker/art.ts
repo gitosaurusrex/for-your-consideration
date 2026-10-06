@@ -1,4 +1,4 @@
-import type { AnyDoc, EntityType, I18n, ItemDoc, PersonDoc } from '../src/shared/schema';
+import { hasText, LANG_INFO, TRANSLATIONS, type AnyDoc, type EntityType, type I18n, type ItemDoc, type Lang, type PersonDoc } from '../src/shared/schema';
 import type { Bindings } from './env';
 
 /** One possible piece of artwork; `fields` is what gets filled in if it's chosen. */
@@ -110,43 +110,54 @@ async function music(item: ItemDoc): Promise<ArtCandidate[]> {
  * The first few sentences of a TMDB biography. TMDB bios are often long and copied from
  * Wikipedia, so this keeps a short opening and notes where it came from.
  */
-export function shortBio(text: string | undefined, lang: 'en' | 'ja'): string | undefined {
+export function shortBio(text: string | undefined, lang: Lang): string | undefined {
   const para = text?.split(/\n+/).map((s) => s.trim())
     .find((s) => s && !/^from wikipedia/i.test(s) && !/^description above from/i.test(s));
   if (!para) return undefined;
-  const sentences = lang === 'ja'
-    ? para.match(/[^。！？]+[。！？」]*/g) ?? [para]
-    : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-Z"“(])/);
-  const limit = lang === 'ja' ? 220 : 450;
+  const sentences =
+    lang === 'ja' ? para.match(/[^。！？]+[。！？」]*/g) ?? [para]
+    // Thai has no full stops; a space separates phrases and sentences.
+    : lang === 'th' ? para.split(/\s+/)
+    : para.split(/(?<=[.!?]["”’)]?)\s+(?=[A-ZÁÉÍÓÚÑ¿¡"“(])/);
+  const limit = lang === 'ja' ? 220 : lang === 'th' ? 260 : 450;
+  const join = lang === 'ja' ? '' : ' ';
   let out = '';
-  for (const s of sentences.slice(0, 3)) {
-    const next = out ? (lang === 'ja' ? out + s : `${out} ${s}`) : s;
+  for (const s of sentences.slice(0, lang === 'th' ? 40 : 3)) {
+    const next = out ? out + join + s : s;
     if (out && next.length > limit) break;
     out = next;
   }
   return out.trim() || undefined;
 }
 
-/** The bio fields for a person, from TMDB's English and Japanese details responses. */
-function bioFields(en: Record<string, any>, ja: Record<string, any>): Record<string, string | I18n> | undefined {
+type Details = Record<string, any>;
+
+/** The bio fields for a person, from TMDB's English details and its details in each other site language. */
+function bioFields(en: Details, translated: Partial<Record<Lang, Details>>): Record<string, string | I18n> | undefined {
   const bioEn = shortBio(en.biography, 'en');
   if (!bioEn) return undefined;
-  // TMDB returns the English text when there's no Japanese one; only keep a real translation.
-  const bioJa = ja.biography && ja.biography !== en.biography ? shortBio(ja.biography, 'ja') : undefined;
-  const fromWikipedia = /wikipedia/i.test(`${en.biography} ${ja.biography ?? ''}`);
-  return {
-    bio: { en: bioEn, ...(bioJa ? { ja: bioJa } : {}) },
-    bio_credit: fromWikipedia ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB',
-  };
+  const bio: I18n = { en: bioEn };
+  for (const l of TRANSLATIONS) {
+    const text = translated[l]?.biography;
+    // TMDB can return the English text when there's no translation; only keep a real one.
+    const short = text && text !== en.biography ? shortBio(text, l) : undefined;
+    if (short) bio[l] = short;
+  }
+  const all = [en.biography, ...TRANSLATIONS.map((l) => translated[l]?.biography ?? '')].join(' ');
+  return { bio, bio_credit: /wikipedia/i.test(all) ? 'Bio: Wikipedia via TMDB, CC BY-SA' : 'Bio: TMDB' };
 }
 
-const japaneseDetails = (env: Bindings, id: number) =>
-  tmdb(env, `/person/${id}`, { language: 'ja-JP' }).catch((): Record<string, any> => ({}));
+/** A person's TMDB details in each non-English site language (a failed one is just left out). */
+async function translatedDetails(env: Bindings, id: number): Promise<Partial<Record<Lang, Details>>> {
+  const got = await Promise.all(TRANSLATIONS.map((l) =>
+    tmdb(env, `/person/${id}`, { language: LANG_INFO[l].locale }).catch((): Details => ({}))));
+  return Object.fromEntries(TRANSLATIONS.map((l, i) => [l, got[i]]));
+}
 
-/** A person's bio from TMDB in English and (when TMDB has one) Japanese, plus a credit line. */
+/** A person's bio from TMDB in English and each other language TMDB has, plus a credit line. */
 async function personBio(env: Bindings, id: number): Promise<Record<string, string | I18n> | undefined> {
-  const [en, ja] = await Promise.all([tmdb(env, `/person/${id}`), japaneseDetails(env, id)]);
-  return bioFields(en, ja);
+  const [en, translated] = await Promise.all([tmdb(env, `/person/${id}`), translatedDetails(env, id)]);
+  return bioFields(en, translated);
 }
 
 /** Something a person is credited on in this catalog, used to confirm which TMDB person they are. */
@@ -181,7 +192,7 @@ export async function fillPerson(env: Bindings, p: PersonDoc, credits: Credit[])
   }
   const out: Record<string, string | I18n> = {};
   if (!p.photo && match.profile_path) out.photo = `${TMDB_IMG}/w342${match.profile_path}`;
-  if (!p.bio?.en && !p.bio?.ja) Object.assign(out, bioFields(match, await japaneseDetails(env, match.id)));
+  if (!hasText(p.bio)) Object.assign(out, bioFields(match, await translatedDetails(env, match.id)));
   if (!Object.keys(out).length) throw new ArtError(`TMDB has no photo or bio for ${match.name}.`);
   return out;
 }

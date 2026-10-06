@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react';
-import { isStoredImage, KIND_MEDIUM, type EntityType, type FieldSpec, type I18n, type ItemKind } from '../shared/schema';
+import { hasText, isStoredImage, KIND_MEDIUM, type EntityType, type FieldSpec, type I18n, type ItemKind } from '../shared/schema';
 import { api, type ArtCandidate } from './api';
 import { useAdmin } from './context';
 
@@ -54,7 +54,7 @@ export function ImageField({ spec, value, onChange, entityType, form, setFields 
     const patch: Record<string, unknown> = { ...c.fields };
     // A bio already written (by hand or earlier) is kept; Find art only fills an empty one.
     const bio = form.bio as I18n | undefined;
-    const keptBio = !!(bio?.en || bio?.ja) && 'bio' in patch;
+    const keptBio = hasText(bio) && 'bio' in patch;
     if (keptBio) { delete patch.bio; delete patch.bio_credit; }
     if (data.settings.keepCopies) {
       setBusy('Saving a copy…');

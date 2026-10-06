@@ -1,4 +1,4 @@
-import { availabilityActive, genreKey, MEDIA, type CompanyDoc, type GenreDoc, type ItemDoc, type Lang, type Medium, type PersonDoc, type SiteSettings } from './shared/schema';
+import { availabilityActive, genreKey, LANGS, MEDIA, type CompanyDoc, type GenreDoc, type ItemDoc, type Lang, type Medium, type PersonDoc, type SiteSettings, type I18n } from './shared/schema';
 import type { Company, Entry, Genre, Item, Localized, Person } from './types';
 
 export interface Catalog {
@@ -9,16 +9,17 @@ export interface Catalog {
   genres: GenreDoc[];
 }
 
-const isI18n = (v: unknown): v is { en: string; ja?: string } =>
+const isI18n = (v: unknown): v is I18n =>
   !!v && typeof v === 'object' && !Array.isArray(v) && typeof (v as { en?: unknown }).en === 'string';
 
 function localize<T extends object>(doc: T, lang: Lang): Localized<T> {
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(doc)) out[k] = isI18n(v) ? (lang === 'ja' && v.ja) || v.en : v;
+  for (const [k, v] of Object.entries(doc)) out[k] = isI18n(v) ? v[lang] || v.en : v;
   return out as Localized<T>;
 }
 
-const entry = <T extends { id: string }>(doc: T): Entry<T> => ({ slug: doc.id, doc, en: localize(doc, 'en'), ja: localize(doc, 'ja') });
+const entry = <T extends { id: string }>(doc: T): Entry<T> =>
+  ({ slug: doc.id, doc, ...Object.fromEntries(LANGS.map((l) => [l, localize(doc, l)])) }) as Entry<T>;
 
 // Live bindings: populated once by setCatalog() before the app renders.
 export let settings: SiteSettings;
@@ -146,10 +147,12 @@ export const isFreeNow = (item: Item) => availabilityActive(item.doc.availabilit
 export const isLimitedNow = (item: Item) => availabilityActive(item.doc.availability) && !!item.doc.availability?.limited_time;
 
 export function searchText(item: Item): string {
+  // Every language, so a search in any of them finds the item.
+  const names = (e?: Entry<{ name: I18n }>) => (e ? LANGS.map((l) => e[l].name) : []);
   return [
-    item.en.title, item.ja.title, item.en.summary, item.ja.summary, String(item.en.year),
-    ...creditsOf(item).flatMap((c) => { const p = getPerson(c.slug); return p ? [p.en.name, p.ja.name] : []; }),
-    ...[...(item.doc.developers ?? []), ...(item.doc.publishers ?? [])].flatMap((s) => { const c = getCompany(s); return c ? [c.en.name, c.ja.name] : []; }),
-    ...item.doc.genres.flatMap((g) => { const x = getGenre(item.section, g); return x ? [x.en.name, x.ja.name] : []; }),
+    ...LANGS.flatMap((l) => [item[l].title, item[l].summary]), String(item.en.year),
+    ...creditsOf(item).flatMap((c) => names(getPerson(c.slug))),
+    ...[...(item.doc.developers ?? []), ...(item.doc.publishers ?? [])].flatMap((s) => names(getCompany(s))),
+    ...item.doc.genres.flatMap((g) => names(getGenre(item.section, g))),
   ].join(' ').toLowerCase();
 }
