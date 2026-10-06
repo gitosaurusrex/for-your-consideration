@@ -149,7 +149,7 @@ async function wikipedia(title) {
     generator: 'search', gsrsearch: `${title} video game`, gsrlimit: '10',
     prop: 'pageimages|description', piprop: 'original', pilicense: 'any',
   }).toString();
-  const headers = { 'User-Agent': 'TheStacks/1.0 (https://github.com/gitosaurusrex/for-your-consideration)' };
+  const headers = { 'User-Agent': 'TheStacks/1.0 (https://github.com/gitosaurusrex/the-stacks)' };
   let res = await fetch(url, { headers });
   if (res.status === 429) { await new Promise((r) => setTimeout(r, 5000)); res = await fetch(url, { headers }); }
   if (!res.ok) throw new Error(`Wikipedia ${res.status}`);
