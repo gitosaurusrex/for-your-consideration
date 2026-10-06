@@ -623,4 +623,5 @@ html[data-transition='lang']::view-transition-new(root) { animation: lang-in 0.4
   .vinyl { transform: translateX(42%); }
 }
 
+.site-footer__version { align-self: center; font-size: 11px; font-variant-numeric: tabular-nums; opacity: 0.7; }
 .site-footer__credit { flex-basis: 100%; text-align: center; font-size: 11px; opacity: 0.7; }
