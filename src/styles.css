@@ -149,11 +149,16 @@ p { margin: 0; }
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 16px;
   padding: 12px var(--gutter);
+  /* Clear at the top of the page, so the background glow runs behind it; frosted once content scrolls under it. */
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+  view-transition-name: header;
+}
+.site-header.is-scrolled {
   background: linear-gradient(to bottom, rgb(var(--bg-rgb) / 0.85), rgb(var(--bg-rgb) / 0.55));
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  border-bottom: 1px solid var(--line);
-  view-transition-name: header;
+  border-bottom-color: var(--line);
 }
 .logo { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
 .logo__mark {
@@ -309,20 +314,21 @@ p { margin: 0; }
 
 .person-chip {
   display: inline-flex; align-items: center; gap: 10px;
-  padding: 4px 14px 4px 4px; border-radius: 999px;
+  padding: 4px 14px 4px 4px; border-radius: 12px;
   background: var(--surface); border: 1px solid var(--line); font-weight: 500; font-size: 14.5px;
   transition: transform 0.3s var(--ease-spring), background 0.25s, border-color 0.25s;
 }
 .person-chip:hover { transform: translateY(-2px); background: var(--surface-2); border-color: rgb(var(--ink) / 0.22); }
 .avatar {
   --h: 200;
-  display: inline-grid; place-items: center; flex-shrink: 0; overflow: hidden; border-radius: 50%;
+  /* Portrait frame: headshots are tall, so a circle crops them badly. */
+  display: inline-grid; place-items: center; flex-shrink: 0; overflow: hidden; aspect-ratio: 3 / 4; border-radius: 7px;
   background: linear-gradient(135deg, hsl(var(--h) 75% 62%), hsl(calc(var(--h) + 50) 70% 40%));
   color: #fff; font-weight: 800; font-size: 13px; letter-spacing: 0.02em;
   box-shadow: 0 0 0 2px rgb(255 255 255 / 0.12);
 }
-.avatar img { width: 100%; height: 100%; object-fit: cover; }
-.page-head--person .avatar { font-size: 38px; font-family: var(--font-display); box-shadow: 0 0 0 4px rgb(255 255 255 / 0.1), 0 20px 50px -20px hsl(var(--h) 80% 50% / 0.9); }
+.avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.page-head--person .avatar { aspect-ratio: 2 / 3; border-radius: 16px; font-size: 38px; font-family: var(--font-display); box-shadow: 0 0 0 4px rgb(255 255 255 / 0.1), 0 20px 50px -20px hsl(var(--h) 80% 50% / 0.9); }
 
 /* ───────────────────────────── Home ───────────────────────────── */
 .hero {
@@ -331,13 +337,21 @@ p { margin: 0; }
 }
 .hero__greeting {
   font-family: var(--font-display); font-weight: 900; font-style: italic;
-  font-size: clamp(48px, 8.5vw, 108px); line-height: 0.98; letter-spacing: -0.03em; margin: 10px 0 22px;
+  /* --fit (set by the Greeting component) shrinks long greetings so they fit without awkward breaks. */
+  font-size: calc(clamp(48px, 8.5vw, 108px) * var(--fit, 1)); line-height: 0.98; letter-spacing: -0.03em;
+  /* Bottom padding so the gradient (clipped to the text) also covers descenders like g and y. */
+  margin: 10px 0 calc(22px - 0.14em); padding-bottom: 0.14em;
   background: linear-gradient(100deg, var(--greeting-from) 10%, var(--accent-2) 45%, var(--accent) 70%, var(--accent-3));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 :lang(ja) .hero__greeting { font-style: normal; letter-spacing: 0.02em; }
 .wave { display: inline-block; animation: wave 0.9s var(--ease-spring) backwards; animation-delay: calc(var(--c) * 45ms + 250ms); background: inherit; -webkit-background-clip: text; background-clip: text; }
 .hero__greeting .wave { background: none; color: inherit; }
+.greeting__word { white-space: nowrap; }
+.hero__greeting.is-measuring { white-space: nowrap; }
+/* Never transition the greeting's size: Greeting measures it right after changing --fit
+   (the reduced-motion rule below would otherwise make every change a tiny transition). */
+.hero__greeting, .hero__greeting * { transition: none !important; }
 @keyframes wave { from { transform: translateY(0.5em) rotate(8deg); opacity: 0; } }
 .hero__intro { font-size: clamp(17px, 1.9vw, 21px); color: var(--text-soft); max-width: 34em; text-wrap: pretty; }
 .hero__signoff { font-family: var(--font-hand); font-size: 26px; color: var(--accent-2); margin-top: 14px; transform: rotate(-2deg); transform-origin: left; }
@@ -496,11 +510,12 @@ p { margin: 0; }
 
 /* ───────────────────────────── People ───────────────────────────── */
 .page-head--person { align-items: flex-start; }
-.page-head--person.has-photo .avatar { border-radius: 28px; box-shadow: 0 0 0 4px rgb(255 255 255 / 0.1), 0 30px 60px -24px hsl(var(--h) 80% 50% / 0.9); }
+.page-head--person.has-photo .avatar { box-shadow: 0 0 0 4px rgb(255 255 255 / 0.1), 0 30px 60px -24px hsl(var(--h) 80% 50% / 0.9); }
 .person-photo { display: grid; gap: 6px; justify-items: center; }
 .photo-credit { font-size: 10.5px; color: var(--faint); max-width: 168px; text-align: center; line-height: 1.3; }
 .person-info { flex: 1 1 320px; min-width: 0; }
 .bio { margin-top: 16px; font-size: 17px; color: var(--text-soft); max-width: 42em; text-wrap: pretty; }
+.bio-credit { display: block; margin-top: 8px; font-size: 11.5px; color: var(--faint); }
 
 /* ───────────────────────────── Chips, filters, search ───────────────────────────── */
 .search-link { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); color: var(--muted); transition: color 0.2s, background 0.2s, transform 0.3s var(--ease-spring); }

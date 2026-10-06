@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useLayoutEffect, useRef, type CSSProperties } from 'react';
 import { allItems, enabledMedia, genresOf, itemHue, itemKey, itemPath, itemsIn, itemsInGenre, settings } from '../data';
 import { useLang, type Strings } from '../i18n';
 import { Art } from '../components/Art';
@@ -40,6 +40,85 @@ function FeaturedCard({ item, index }: { item: Item; index: number }) {
   );
 }
 
+/**
+ * Splits a greeting into pieces that must not be broken, and says whether a space came before each.
+ * Breaks are allowed at spaces, after punctuation, and in Japanese (which has no spaces) before a
+ * polite ending: おはよう / ございます, お疲れさま / です. Never in the middle of a word.
+ */
+export function greetingWords(text: string): { text: string; space: boolean }[] {
+  const out: { text: string; space: boolean }[] = [];
+  for (const m of text.trim().matchAll(/(\s*)([^\s]+)/g)) {
+    const space = m[1].length > 0 && out.length > 0;
+    const chunk = m[2]
+      .split(/(?<=[、。！？!?,])(?=.)/) // after punctuation
+      .flatMap((part) => {
+        // The shortest stem before an ending, so おはようございます splits once, before ございます.
+        const m = part.match(/^(.{2,}?)((?:ございます|です|ます)[。！!]*)$/u);
+        return m ? [m[1], m[2]] : [part];
+      });
+    chunk.forEach((t, i) => out.push({ text: t, space: i === 0 && space }));
+  }
+  return out.length ? out : [{ text, space: false }];
+}
+
+// Below this, a one-line greeting would look too small, so it wraps between words instead.
+const MIN_ONE_LINE_SCALE = 0.7;
+
+/**
+ * The big waving greeting. Each word is unbreakable, and the text is scaled down just enough
+ * to fit on one line when that keeps it a good size; otherwise it wraps between words.
+ */
+function Greeting({ text }: { text: string }) {
+  const ref = useRef<HTMLHeadingElement>(null);
+  const words = greetingWords(text);
+
+  useLayoutEffect(() => {
+    const h = ref.current;
+    if (!h) return;
+    let lastWidth = -1;
+    const fit = (force = false) => {
+      const avail = h.clientWidth;
+      if (!avail || (!force && avail === lastWidth)) return;
+      lastWidth = avail;
+      h.style.removeProperty('--fit');
+      // Layout widths (offsetWidth/scrollWidth) ignore the wave animation's transforms.
+      h.classList.add('is-measuring');
+      const oneLine = h.scrollWidth;
+      h.classList.remove('is-measuring');
+      const longest = Math.max(...[...h.querySelectorAll<HTMLElement>('.greeting__word')].map((w) => w.offsetWidth));
+      let scale = oneLine > avail ? avail / oneLine : 1;
+      if (scale < MIN_ONE_LINE_SCALE) scale = Math.min(1, avail / longest);
+      // A little room for italic overhang.
+      if (scale < 1) h.style.setProperty('--fit', String(scale * 0.97));
+    };
+    fit(true);
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(h);
+    // Web fonts change the text's width once they arrive, so measure again then.
+    const refit = () => fit(true);
+    document.fonts?.ready.then(refit);
+    document.fonts?.addEventListener('loadingdone', refit);
+    return () => {
+      ro.disconnect();
+      document.fonts?.removeEventListener('loadingdone', refit);
+    };
+  }, [text]);
+
+  let c = 0;
+  return (
+    <h1 ref={ref} className="hero__greeting reveal" style={{ '--i': 1 } as CSSProperties}>
+      {words.map((w, n) => (
+        <span key={n}>
+          {w.space ? ' ' : n > 0 && <wbr />}
+          <span className="greeting__word">
+            {[...w.text].map((ch) => <span key={c} className="wave" style={{ '--c': c++ } as CSSProperties}>{ch}</span>)}
+          </span>
+        </span>
+      ))}
+    </h1>
+  );
+}
+
 export function Home() {
   const { lang, t } = useLang();
   const period = usePeriod();
@@ -55,11 +134,7 @@ export function Home() {
       <section className="hero">
         <div className="hero__copy">
           <p className="eyebrow reveal" style={{ '--i': 0 } as CSSProperties}>{t.tagline}</p>
-          <h1 key={greeting} className="hero__greeting reveal" style={{ '--i': 1 } as CSSProperties}>
-            {[...greeting].map((ch, n) => (
-              <span key={n} className="wave" style={{ '--c': n } as CSSProperties}>{ch === ' ' ? ' ' : ch}</span>
-            ))}
-          </h1>
+          <Greeting key={greeting} text={greeting} />
           <p className="hero__intro reveal" style={{ '--i': 2 } as CSSProperties}>{text.intro[lang] || text.intro.en}</p>
           <p className="hero__signoff reveal" style={{ '--i': 3 } as CSSProperties}>— {text.signoff[lang] || text.signoff.en}</p>
           <div className="hero__ctas reveal" style={{ '--i': 4 } as CSSProperties}>

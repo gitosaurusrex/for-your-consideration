@@ -27,7 +27,7 @@ export interface SaveResult { doc: AnyDoc; warnings: string[] }
 export interface RefList { id: string; title: I18n; kind: ItemKind }
 export interface IngestListRow { id: number; created_at: string; filename: string | null; counts: Plan['counts'] }
 
-export interface ArtCandidate { source: string; label: string; detail?: string; preview: string; fields: Record<string, string> }
+export interface ArtCandidate { source: string; label: string; detail?: string; preview: string; fields: Record<string, string | I18n> }
 export interface MirrorResult { copied: number; failed: { label: string; field: string; url: string; error: string }[]; remaining: number }
 
 async function upload(file: Blob): Promise<{ url: string }> {

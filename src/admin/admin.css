@@ -92,7 +92,12 @@ select.btn { appearance: none; cursor: pointer; }
 .url-field { display: flex; align-items: center; gap: 10px; }
 .url-field__thumb { width: 44px; height: 58px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--surface); }
 .url-field__open { font-size: 13px; color: var(--accent-2); white-space: nowrap; }
-.form__bar { position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px; padding: 14px 0 4px; background: linear-gradient(to top, var(--bg) 60%, transparent); }
+/* Pinned to the bottom while the form scrolls under it: blur what's behind (instead of a colour fade) so the buttons stay readable. */
+.form__bar {
+  position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px;
+  margin: 0 -22px -20px; padding: 14px 22px; border-radius: 0 0 16px 16px; border-top: 1px solid var(--line);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
 .picked { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; border: 1px dashed var(--line); }
 .picked__chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 6px 4px 12px; border-radius: 999px; background: var(--surface-2); font-size: 14px; }
 .picked__chip.is-missing { background: rgb(255 80 80 / 0.15); color: #ffb3b3; }
