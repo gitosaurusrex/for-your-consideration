@@ -403,7 +403,10 @@ p { margin: 0; }
 /* ───────────────────────────── Detail ───────────────────────────── */
 .detail { position: relative; }
 .detail__backdrop {
-  position: absolute; z-index: -1; top: calc(-1 * clamp(24px, 4vw, 48px)); left: 50%; width: 100vw; height: min(80vh, 720px); transform: translateX(-50%);
+  /* Reaches up behind the header (--header-h, measured in Layout) to the top of the window,
+     so it runs behind the clear header instead of starting partway down it. */
+  --reach: var(--header-h, 76px);
+  position: absolute; z-index: -1; top: calc(-1 * var(--reach)); left: 50%; width: 100vw; height: calc(min(80vh, 720px) + var(--reach)); transform: translateX(-50%);
   overflow: hidden; pointer-events: none;
   mask-image: linear-gradient(to bottom, #000 20%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, #000 20%, transparent);
