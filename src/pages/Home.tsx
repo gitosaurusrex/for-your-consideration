@@ -6,6 +6,7 @@ import { GenreTag } from '../components/Chips';
 import { Shelf } from '../components/Grid';
 import { usePageHue } from '../components/Layout';
 import { VLink } from '../components/VLink';
+import { PERIOD_HUE, usePeriod } from '../timeOfDay';
 import { claimArt, isActiveArt } from '../transitions';
 import type { Item, Medium } from '../types';
 
@@ -41,9 +42,10 @@ function FeaturedCard({ item, index }: { item: Item; index: number }) {
 
 export function Home() {
   const { lang, t } = useLang();
-  usePageHue(268);
+  const period = usePeriod();
+  usePageHue(PERIOD_HUE[period]);
   const text = settings.text;
-  const greeting = text.greeting[lang] || text.greeting.en;
+  const greeting = text[period][lang] || text[period].en;
   const featured = allItems.filter((i) => i.doc.featured).slice(0, 4);
   const fan = (featured.length >= 3 ? featured : allItems).slice(0, 5);
   let i = 3;
@@ -53,13 +55,13 @@ export function Home() {
       <section className="hero">
         <div className="hero__copy">
           <p className="eyebrow reveal" style={{ '--i': 0 } as CSSProperties}>{t.tagline}</p>
-          <h1 className="hero__greeting reveal" style={{ '--i': 1 } as CSSProperties}>
+          <h1 key={greeting} className="hero__greeting reveal" style={{ '--i': 1 } as CSSProperties}>
             {[...greeting].map((ch, n) => (
               <span key={n} className="wave" style={{ '--c': n } as CSSProperties}>{ch === ' ' ? ' ' : ch}</span>
             ))}
           </h1>
           <p className="hero__intro reveal" style={{ '--i': 2 } as CSSProperties}>{text.intro[lang] || text.intro.en}</p>
-          <p className="hero__signoff reveal" style={{ '--i': 3 } as CSSProperties}>— {text.signoff[lang] || text.signoff.en} ♡</p>
+          <p className="hero__signoff reveal" style={{ '--i': 3 } as CSSProperties}>— {text.signoff[lang] || text.signoff.en}</p>
           <div className="hero__ctas reveal" style={{ '--i': 4 } as CSSProperties}>
             {enabledMedia.map((m, n) => (
               <VLink key={m} to={SECTION_UI[m].to} className={`btn ${n === 0 ? 'btn--primary' : 'btn--ghost'}`}>

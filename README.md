@@ -17,7 +17,8 @@ A hand-curated recommendations site for **films, TV, music and games**, written 
   - Person pages show a headshot, a bio, and everything they directed, starred in, recorded or created.
   - "More like this" on every item.
 - **Separate genre pools per section.** "Indie" in Games is not "Indie" in Film & TV. The **advanced search** (⌕) combines sections, genres, years, country, platform and availability on purpose.
-- **EN / 日本語 switch.** Defaults to the browser language. `?lang=ja` forces Japanese.
+- **EN / 日本語 switch.** Defaults to Japanese; a visitor's own choice is remembered. `?lang=en` forces English.
+- **Follows the time of day.** The colors and the home page greeting change with the visitor's clock: morning (5–11), afternoon (11–17), evening (17–21) and night (21–5). Morning and afternoon use light palettes, evening and night dark ones.
 - Animated single-page app: posters fly into their detail pages, pages cross-fade, and the language switch dissolves.
 - **Admin at `/admin`**, behind a password login:
   - batch JSON ingest with a preview and conflict review

@@ -12,6 +12,11 @@ const MEDIUM_UI: Record<Medium, { icon: string; label: string }> = {
   play: { icon: '🎮', label: 'Games' },
 };
 
+const TEXT_LABELS: Record<keyof SiteSettings['text'], string> = {
+  morning: 'Morning greeting', afternoon: 'Afternoon greeting', evening: 'Evening greeting', night: 'Night greeting',
+  intro: 'Intro', signoff: 'Sign-off',
+};
+
 export function Dashboard() {
   const { data, reload } = useAdmin();
   const run = useAction();
@@ -120,8 +125,9 @@ export function Dashboard() {
 
       <section className="panel">
         <h2>Home page text</h2>
-        {(['greeting', 'intro', 'signoff'] as const).map((k) => (
-          <I18nInput key={k} label={{ greeting: 'Greeting', intro: 'Intro', signoff: 'Sign-off' }[k]} multiline={k === 'intro'}
+        <p className="muted small">The greeting follows each visitor's clock: morning 5–11, afternoon 11–17, evening 17–21, night 21–5. The site's colors change with it.</p>
+        {(['morning', 'afternoon', 'evening', 'night', 'intro', 'signoff'] as const).map((k) => (
+          <I18nInput key={k} label={TEXT_LABELS[k]} multiline={k === 'intro'}
             value={text[k]} onChange={(v) => setText({ ...text, [k]: v as I18n })} />
         ))}
         <button className="btn btn--primary" onClick={async () => { if (await run(() => api.settings({ text }), 'Home page text saved')) await reload(); }}>

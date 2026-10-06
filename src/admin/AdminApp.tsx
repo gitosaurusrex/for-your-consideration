@@ -56,6 +56,8 @@ export function AdminApp() {
   useEffect(() => {
     document.title = 'Admin · For Your Consideration';
     document.documentElement.lang = 'en';
+    // The admin keeps the default palette, not the public site's time-of-day one.
+    delete document.documentElement.dataset.period;
     document.documentElement.style.setProperty('--page-h', '230');
   }, []);
   return (
