@@ -71,6 +71,14 @@ describe('normalize', () => {
     expect(warnings).toEqual(['"year" is set automatically from the release dates (2019)']);
   });
 
+  it('accepts Thailand and South America release dates and counts them toward the year', () => {
+    const { release_us: _us, release_jp: _jp, ...rest } = deathStranding;
+    const { doc, errors, warnings } = normalize('item', { ...rest, release_th: '2019-11-09', release_sa: '2019-11-08' });
+    expect(errors).toEqual([]);
+    expect(warnings).toEqual([]);
+    expect(doc).toMatchObject({ release_th: '2019-11-09', release_sa: '2019-11-08', year: 2019 });
+  });
+
   it('quietly drops the retired "why I picked it" note from older files', () => {
     const { doc, warnings } = normalize('item', { ...deathStranding, note: { en: 'Old note' } });
     expect(warnings).toEqual([]);
@@ -87,7 +95,7 @@ describe('normalize', () => {
     expect(doc).toBeNull();
     expect(errors.join('\n')).toMatch(/unknown platform "ps6"/);
     expect(errors.join('\n')).toMatch(/release_us.*should be a date/);
-    expect(errors.join('\n')).toMatch(/needs a US or Japan release date/);
+    expect(errors.join('\n')).toMatch(/needs a release date/);
   });
 
   it('turns an availability end date into a limited-time flag', () => {

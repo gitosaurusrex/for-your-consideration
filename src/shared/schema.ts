@@ -83,6 +83,8 @@ export interface ItemDoc {
   // games
   release_us?: string;
   release_jp?: string;
+  release_th?: string;
+  release_sa?: string;
   platforms?: string[];
   developers?: string[];
   publishers?: string[];
@@ -217,8 +219,10 @@ export const ITEM_FIELDS: Record<Medium, FieldSpec[]> = {
   ],
   play: [
     ...ITEM_HEAD,
-    f('release_us', 'US release date', 'date'),
-    f('release_jp', 'Japan release date', 'date', { hint: 'Leave blank if it was not released in Japan.' }),
+    f('release_us', 'US release date', 'date', { hint: 'Shown on the English page.' }),
+    f('release_jp', 'Japan release date', 'date', { hint: 'Shown on the 日本語 page. Leave blank if it was not released in Japan.' }),
+    f('release_th', 'Thailand release date', 'date', { hint: 'Shown on the ไทย page.' }),
+    f('release_sa', 'South America release date', 'date', { hint: 'Shown on the Español page.' }),
     f('platforms', 'Platforms', 'platforms', { required: true }),
     f('developers', 'Developer(s)', 'refs', { to: 'company', required: true }),
     f('publishers', 'Publisher(s)', 'refs', { to: 'company' }),

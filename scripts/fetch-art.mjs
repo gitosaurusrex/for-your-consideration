@@ -161,7 +161,7 @@ async function games() {
   for (const [n, game] of list.entries()) {
     if (n) await new Promise((r) => setTimeout(r, 1000)); // go easy on Wikipedia
     try {
-      const year = Number(String(game.release_us ?? game.release_jp ?? '').slice(0, 4)) || undefined;
+      const year = Number(String(game.release_us ?? game.release_jp ?? game.release_th ?? game.release_sa ?? '').slice(0, 4)) || undefined;
       const [hit] = rankWikiPages(await wikipedia(en(game.title)), en(game.title), year);
       if (!hit) { console.log(`  ? ${en(game.title)}: no Wikipedia article with box art — add "cover" by hand`); continue; }
       game.cover = hit.original.source.split('?')[0];
