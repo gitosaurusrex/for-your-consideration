@@ -111,7 +111,7 @@ function DetailView({ item }: { item: Item }) {
     credits = <>{people(t.creators, d.creators)}{studios(t.developer, d.developers)}{studios(t.publisher, d.publishers)}</>;
     facts = (
       <dl className="facts">
-        <div><dt>{RELEASE[lang].icon} {t.release}</dt><dd>{release ? formatDate(release, lang) : t.notReleased}</dd></div>
+        <div><dt>{RELEASE[lang].icon} {t.release}</dt><dd>{release ? formatDate(release, lang) : t.noReleaseDate}</dd></div>
       </dl>
     );
   }
