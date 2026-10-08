@@ -115,7 +115,7 @@ async function game(item: ItemDoc): Promise<ArtCandidate[]> {
   if (res.status === 429) throw new ArtError('Wikipedia is busy right now — try again in a minute.');
   if (!res.ok) throw new ArtError(`Wikipedia answered ${res.status}.`);
   const pages = (((await res.json()) as { query?: { pages?: WikiPage[] } }).query?.pages ?? []);
-  const yr = Number(year(item.release_us ?? item.release_jp)) || undefined;
+  const yr = Number(year(item.release_us ?? item.release_jp ?? item.release_th ?? item.release_sa)) || undefined;
   return rankWikiPages(pages, title, yr).slice(0, 12).map((p) => {
     const cover = p.original!.source.split('?')[0];
     return {

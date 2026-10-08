@@ -87,8 +87,8 @@ export function normalize(type: EntityType, raw: unknown): Normalized {
   if (type === 'item') {
     doc.medium = KIND_MEDIUM[kind!];
     if (doc.medium === 'play') {
-      const dates = [doc.release_us, doc.release_jp].filter(Boolean) as string[];
-      if (!dates.length) errors.push('a game needs a US or Japan release date');
+      const dates = [doc.release_us, doc.release_jp, doc.release_th, doc.release_sa].filter(Boolean) as string[];
+      if (!dates.length) errors.push('a game needs a release date (US, Japan, Thailand or South America)');
       else doc.year = Number(dates.sort()[0].slice(0, 4));
       if (input.year != null && doc.year != null && Number(input.year) !== doc.year) {
         warnings.push(`"year" is set automatically from the release dates (${doc.year})`);

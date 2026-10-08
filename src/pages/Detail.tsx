@@ -7,7 +7,7 @@ import { AvailabilityBadge } from '../components/Availability';
 import { CountryTag, GenreTag, PersonChip, PlatformTag, StudioChip } from '../components/Chips';
 import { Shelf } from '../components/Grid';
 import { usePageHue } from '../components/Layout';
-import type { Item, Medium } from '../types';
+import type { Item, Lang, Medium } from '../types';
 import { NotFound } from './NotFound';
 
 const BACK: Record<Medium, string> = { watch: '/watch', listen: '/listen', play: '/play' };
@@ -60,6 +60,14 @@ export function Detail({ medium }: { medium: Medium }) {
   return <DetailView item={item} key={item.slug} />;
 }
 
+// A game page shows only the release date for the visitor's language's region.
+const RELEASE: Record<Lang, { field: 'release_us' | 'release_jp' | 'release_th' | 'release_sa'; icon: string }> = {
+  en: { field: 'release_us', icon: flag('US') },
+  ja: { field: 'release_jp', icon: flag('JP') },
+  th: { field: 'release_th', icon: flag('TH') },
+  es: { field: 'release_sa', icon: '🌎' },
+};
+
 function DetailView({ item }: { item: Item }) {
   const { lang, t } = useLang();
   const hue = itemHue(item);
@@ -99,11 +107,11 @@ function DetailView({ item }: { item: Item }) {
       </>
     );
   } else {
+    const release = d[RELEASE[lang].field];
     credits = <>{people(t.creators, d.creators)}{studios(t.developer, d.developers)}{studios(t.publisher, d.publishers)}</>;
     facts = (
       <dl className="facts">
-        <div><dt>{flag('US')} {t.releaseUS}</dt><dd>{d.release_us ? formatDate(d.release_us, lang) : '—'}</dd></div>
-        <div><dt>{flag('JP')} {t.releaseJP}</dt><dd>{d.release_jp ? formatDate(d.release_jp, lang) : t.notInJapan}</dd></div>
+        <div><dt>{RELEASE[lang].icon} {t.release}</dt><dd>{release ? formatDate(release, lang) : t.noReleaseDate}</dd></div>
       </dl>
     );
   }
