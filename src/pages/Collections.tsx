@@ -35,7 +35,7 @@ export function GenrePage() {
   return (
     <div className="page collection" style={{ '--h': hue } as CSSProperties}>
       <header className="page-head page-head--banner">
-        <p className="eyebrow reveal" style={reveal(0)}>{ICON[m]} {t.sectionName[m]} · {t.genre} · {t.recsCount(items.length)}</p>
+        <p className="eyebrow reveal" style={reveal(0)}>{ICON[m]} {t.sectionName[m]} · {t.genre} · {t.itemsCount(items.length)}</p>
         <h1 className="page-title page-title--huge reveal" style={reveal(1)}><span className="hash">#</span>{g[lang].name}</h1>
         {altName && altName !== g[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
       </header>
@@ -62,7 +62,7 @@ export function PersonPage() {
           {p.doc.photo_credit && <small className="photo-credit">{p.doc.photo_credit}</small>}
         </div>
         <div className="person-info">
-          <p className="eyebrow reveal" style={reveal(1)}>{t.person} · {t.recsCount(total)}</p>
+          <p className="eyebrow reveal" style={reveal(1)}>{t.person} · {t.itemsCount(total)}</p>
           <h1 className="page-title reveal" style={reveal(2)}>{p[lang].name}</h1>
           {altName && altName !== p[lang].name && <p className="page-alt reveal" style={reveal(3)}>{altName}</p>}
           {p[lang].bio && <p className="bio reveal" style={reveal(4)}>{p[lang].bio}</p>}
@@ -90,7 +90,7 @@ export function StudioPage() {
     <div className="page collection" style={{ '--h': hueOf(slug) } as CSSProperties}>
       <header className="page-head page-head--banner">
         <p className="eyebrow reveal" style={reveal(0)}>
-          {t.studio}{c.doc.country && <> · {flag(c.doc.country)} {countryName(c.doc.country, lang)}</>} · {t.recsCount(developed.length + published.length)}
+          {t.studio}{c.doc.country && <> · {flag(c.doc.country)} {countryName(c.doc.country, lang)}</>} · {t.itemsCount(developed.length + published.length)}
         </p>
         <h1 className="page-title page-title--huge reveal" style={reveal(1)}>{c[lang].name}</h1>
         {altName && altName !== c[lang].name && <p className="page-alt reveal" style={reveal(2)}>{altName}</p>}
@@ -111,7 +111,7 @@ export function CountryPage() {
   return (
     <div className="page collection">
       <header className="page-head page-head--banner">
-        <p className="eyebrow reveal" style={reveal(0)}>{t.madeIn} · {t.recsCount(items.length)}</p>
+        <p className="eyebrow reveal" style={reveal(0)}>{t.madeIn} · {t.itemsCount(items.length)}</p>
         <h1 className="page-title page-title--huge reveal" style={reveal(1)}>
           <span className="flag-big" aria-hidden>{flag(upper)}</span> {countryName(upper, lang)}
         </h1>

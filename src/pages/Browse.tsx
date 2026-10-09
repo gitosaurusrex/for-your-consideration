@@ -54,7 +54,7 @@ export function Browse({ section }: { section: Medium }) {
   return (
     <div className="page browse">
       <header className="page-head">
-        <p className="eyebrow reveal" style={{ '--i': 0 } as CSSProperties}>{t.recsCount(all.length)}</p>
+        <p className="eyebrow reveal" style={{ '--i': 0 } as CSSProperties}>{t.itemsCount(all.length)}</p>
         <h1 className="page-title reveal" style={{ '--i': 1 } as CSSProperties}><span aria-hidden>{cfg.icon}</span> {cfg.title(t)}</h1>
       </header>
       <div className="toolbar reveal" style={{ '--i': 2 } as CSSProperties}>
